@@ -50,20 +50,20 @@ export default function AgentsFixDialog({
           sx={{ pl: 2.5, m: 0, '& li': { mb: 0.5 } }}
         >
           <li>
-            <b>Hefesto</b> corrige de forma lo guardado: precios mal leídos (&quot;9$95&quot; →
+            <b>Asta</b> corrige de forma lo guardado: precios mal leídos (&quot;9$95&quot; →
             &quot;$9.95&quot;), regulares absurdos fuera, letra chica sin repetir mostrador, límite
             o compra mínima.
           </li>
           <li>
-            <b>Temis</b> deja visibles sólo los productos de este flyer, oculta el resto y quita
+            <b>Yami</b> deja visibles sólo los productos de este flyer, oculta el resto y quita
             los repetidos.
           </li>
           <li>
-            <b>Atenea</b> vuelve a leer el arte página por página y coteja precios, nombres y
+            <b>Vanessa</b> vuelve a leer el arte página por página y coteja precios, nombres y
             letra chica. Lo dudoso queda para decidir en Agentes IA.
           </li>
           <li>
-            <b>Iris</b> rehace las fotos que falten o no se parezcan.
+            <b>Gauche</b> rehace las fotos que falten o no se parezcan.
           </li>
         </Typography>
         <Typography

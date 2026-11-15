@@ -4,8 +4,8 @@
  * Listas de compra por tienda (Store.listsEnabled / listsLinkUrl). Apagadas: el linktree no
  * muestra "haz tu lista", Mi cuenta esconde la pestaña y la tarjeta de lista, y el RCS del
  * piloto sale sin botón de lista. El link alternativo ocupa el lugar de la lista si existe.
- * "¿Quiere lista?" = No (12 oct 2026): además los agentes (Hermes y compañía, arte de campaña,
- * Revisión IA, Iris) no le cargan flyers ni productos — circular-service lo revisa.
+ * "¿Quiere lista?" = No (12 oct 2026): además los agentes (Finral y compañía, arte de campaña,
+ * Revisión IA, Gauche) no le cargan flyers ni productos — circular-service lo revisa.
  */
 import {
   PanelCard,

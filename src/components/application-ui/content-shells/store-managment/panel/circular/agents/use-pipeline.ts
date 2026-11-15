@@ -58,7 +58,7 @@ export function useRerunAudit(circularId: string | undefined, refetch: () => unk
   return useMutation({
     mutationFn: () => circularService.runAudit(circularId!),
     onSuccess: () => {
-      toast.success('Atenea está revisando página por página… el % aparece acá al terminar');
+      toast.success('Vanessa está revisando página por página… el % aparece acá al terminar');
       setTimeout(() => refetch(), 1500);
     },
     onError: (e: any) => toast.error(e?.response?.data?.error || 'No se pudo auditar'),

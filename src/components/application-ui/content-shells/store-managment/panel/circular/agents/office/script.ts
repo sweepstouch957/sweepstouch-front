@@ -6,10 +6,10 @@ import { ORDER } from '../constants';
 // de empleado que le habla al patrón. Se rota con el turno para que no repitan siempre lo mismo.
 export const SAY = {
   idle: [
-    '☕ Un cafecito mientras llega el próximo circular, patrón.',
+    '🔥 Un rato en la fogata mientras llega el próximo circular, patrón.',
     'Todo al día por acá, patrón. ¿Hay algo más?',
     '¿Alguien vio el flyer de la semana que viene?',
-    'Sin pendientes. Estiro las piernas un rato.',
+    'Sin pendientes. Entreno un rato: hay que superar los límites.',
     'Hoy no se me trabó nada 😎',
     '¿Mandamos el circular nuevo cuando quiera, patrón?',
   ],
@@ -31,8 +31,8 @@ export const SAY = {
     'Terminé, {next}. Es todo tuyo.',
   ],
   error: ['Me trabé, patrón: {msg}', 'Necesito ayuda: {msg}', 'Esto no me salió: {msg}'],
-  thanks: ['¡Gracias, patrón! ☕', 'Me lo gané, ¿no? 😄', 'Descanso cinco y vuelvo.'],
-  go: ['¡A trabajar! 💪', 'Sí, patrón. Voy.', 'Ahora mismo, patrón.'],
+  thanks: ['¡Gracias, patrón! ♣', 'Me lo gané, ¿no? 😄', 'Descanso cinco y vuelvo.'],
+  go: ['¡A superar nuestros límites! 💪', 'Sí, patrón. Voy.', 'Aquí y ahora, patrón.'],
 };
 
 export const pick = (arr: string[], i: number) => arr[((i % arr.length) + arr.length) % arr.length];

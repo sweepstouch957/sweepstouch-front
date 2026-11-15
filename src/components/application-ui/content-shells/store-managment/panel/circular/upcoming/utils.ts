@@ -20,9 +20,9 @@ export type Confirm =
 export type EditorTarget = { product: StoreProduct; flyerUrl: string; fromCampaign: boolean };
 
 export type AgentsOptions = {
-  /** Argos: segunda pasada por secciones. */
+  /** Yuno: segunda pasada por secciones. */
   missing: boolean;
-  /** Iris: rehacer todas las fotos del flyer. */
+  /** Gauche: rehacer todas las fotos del flyer. */
   photos: boolean;
 };
 

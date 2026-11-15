@@ -139,7 +139,7 @@ function UpcomingProductCard({
               color: 'primary.main',
             }}
           >
-            Iris está rehaciendo la foto…
+            Gauche está rehaciendo la foto…
           </Typography>
         )}
         <Box sx={{ position: 'absolute', top: 8, right: 8 }}>
@@ -238,7 +238,7 @@ function UpcomingProductCard({
               disabled={busy}
             />
             <CardAction
-              title="No se parece: Iris la busca de nuevo en su página del arte (≈ 1 min)"
+              title="No se parece: Gauche la busca de nuevo en su página del arte (≈ 1 min)"
               icon={<CameraswitchOutlinedIcon fontSize="small" />}
               onClick={() => onRephoto(p)}
               disabled={rephotoing}

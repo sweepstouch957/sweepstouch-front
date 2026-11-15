@@ -1,9 +1,9 @@
 'use client';
 
 /**
- * Cómo funciona ESTA tienda para los agentes: reglas fijas (Argos las lee al extraer, Atenea al
- * auditar, Iris al rescanear fotos), lecciones de lo que salió mal y los departamentos que
- * aprendió Mnemósine. Antes vivía mezclado con las indicaciones de una sola extracción.
+ * Cómo funciona ESTA tienda para los agentes: reglas fijas (Yuno las lee al extraer, Vanessa al
+ * auditar, Gauche al rescanear fotos), lecciones de lo que salió mal y los departamentos que
+ * aprendió Noelle. Antes vivía mezclado con las indicaciones de una sola extracción.
  */
 import type { StoreLesson, StoreProfile } from '@/services/circular.service';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
@@ -81,7 +81,7 @@ function RulesForm({
       helperText={
         formState.isDirty
           ? 'Sin guardar: se guarda al salir del campo'
-          : 'Argos la lee al extraer, Atenea al auditar e Iris al rescanear fotos'
+          : 'Yuno la lee al extraer, Vanessa al auditar y Gauche al rescanear fotos'
       }
     />
   );
@@ -252,7 +252,7 @@ export default function StoreRulesCard({
               color="text.secondary"
               sx={{ mr: 0.5 }}
             >
-              Departamentos que Mnemósine aprendió:
+              Departamentos que Noelle aprendió:
             </Typography>
             {departments.map((d) => (
               <Chip

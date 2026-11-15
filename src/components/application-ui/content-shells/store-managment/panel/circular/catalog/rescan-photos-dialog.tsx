@@ -4,7 +4,7 @@ import type { CatalogSummary } from '@/services/circular.service';
 import { ChoiceDialog, type ChoiceOption } from './choice-dialog';
 import type { RescanMode } from './constants';
 
-/** Iris rescanea fotos: las del flyer/circular vigente, todas las visibles o sólo las malas. */
+/** Gauche rescanea fotos: las del flyer/circular vigente, todas las visibles o sólo las malas. */
 export function RescanPhotosDialog({
   open,
   busy,
@@ -37,7 +37,7 @@ export function RescanPhotosDialog({
       busy={busy}
       onClose={onClose}
       title="Rescanear fotos"
-      body="Iris vuelve a buscar cada producto en su página del circular, recorta sólo su foto, comprueba que sea él y la limpia. Si no lo encuentra, genera la foto desde el nombre."
+      body="Gauche vuelve a buscar cada producto en su página del circular, recorta sólo su foto, comprueba que sea él y la limpia. Si no lo encuentra, genera la foto desde el nombre."
       note={
         <>
           &quot;Sólo las malas&quot; = sin foto o con recorte crudo. &quot;Todas&quot; rehace

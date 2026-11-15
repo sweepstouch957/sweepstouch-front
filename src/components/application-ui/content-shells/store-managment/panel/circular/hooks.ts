@@ -182,8 +182,8 @@ export function useExtractProducts(storeSlug: string) {
         // El backend contesta 202 y sigue solo: un circular grande tarda 20–30 min.
         toast.success(
           d?.maxProducts
-            ? `Argos está leyendo los primeros ${d.maxProducts} productos en segundo plano. Sigue el avance en "Proceso del circular".`
-            : 'Argos está leyendo TODO el circular en segundo plano, página por página. Sigue el avance en "Proceso del circular"; la lista se va llenando sola.',
+            ? `Yuno está leyendo los primeros ${d.maxProducts} productos en segundo plano. Sigue el avance en "Proceso del circular".`
+            : 'Yuno está leyendo TODO el circular en segundo plano, página por página. Sigue el avance en "Proceso del circular"; la lista se va llenando sola.',
           { duration: 9000 }
         );
       } else {

@@ -61,7 +61,7 @@ export default function AgentsDialog({
   onSubmit: (values: AgentsOptions) => void;
 }) {
   // Un flyer de supermercado trae 80–120 productos y la primera lectura suele sacar 30–40:
-  // la segunda pasada (Argos, por secciones) es lo primero que hay que correr.
+  // la segunda pasada (Yuno, por secciones) es lo primero que hay que correr.
   const defaultValues: AgentsOptions = { missing: true, photos: false };
   const { register, handleSubmit } = useForm<AgentsOptions>({ defaultValues });
 
@@ -92,7 +92,7 @@ export default function AgentsDialog({
           disabled={pending}
           label={
             <>
-              <b>Argos</b> vuelve a leer el arte por secciones y suma los productos que la primera
+              <b>Yuno</b> vuelve a leer el arte por secciones y suma los productos que la primera
               lectura se saltó. Lo que ya está no se toca.
             </>
           }
@@ -101,7 +101,7 @@ export default function AgentsDialog({
           variant="body2"
           sx={{ mt: 1.5 }}
         >
-          <b>Atenea</b> coteja precios, nombres y letra chica contra el arte. Lo seguro lo
+          <b>Vanessa</b> coteja precios, nombres y letra chica contra el arte. Lo seguro lo
           corrige; lo dudoso queda en Agentes IA para decidir.
         </Typography>
         <AgentCheck
@@ -110,7 +110,7 @@ export default function AgentsDialog({
           disabled={pending}
           label={
             <>
-              <b>Iris</b> rehace TODAS las fotos de este flyer buscando cada producto en su página
+              <b>Gauche</b> rehace TODAS las fotos de este flyer buscando cada producto en su página
               (una por producto, tarda varios minutos). Si sólo son una o dos, mejor el ícono de
               cámara en la card.
             </>

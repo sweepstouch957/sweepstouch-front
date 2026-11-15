@@ -73,12 +73,12 @@ function AgentOffice({
     keys.map((k, i) => [k, agentLine(k, byAgent.get(k), pipe, i + tick)])
   );
 
-  // Instrucciones desde la oficina → lección de la tienda (le contesta el elegido, o Temis).
+  // Instrucciones desde la oficina → lección de la tienda (le contesta el elegido, o Yami).
   const send = async (text: string) => {
     await onSendInstruction(text, selected || undefined);
     say({ [selected || 'temis']: instructionReply(text, !!selected) });
   };
-  // Respuestas rápidas del patrón: "Sí, dale" arranca la revisión diaria (Atenea coteja todo
+  // Respuestas rápidas del patrón: "Sí, dale" arranca la revisión diaria (Vanessa coteja todo
   // contra el flyer); "Descansen" sólo les contesta.
   const answer = (kind: 'go' | 'rest') => {
     const all = Object.fromEntries(
@@ -115,8 +115,9 @@ function AgentOffice({
         <Typography
           variant="subtitle2"
           fontWeight={800}
+          sx={{ color: 'common.white', textShadow: '0 1px 4px rgba(0,0,0,.55)' }}
         >
-          La oficina
+          ♣ La guarida de los Toros Negros
         </Typography>
         {loading && <CircularProgress size={14} />}
         {data?.running && (

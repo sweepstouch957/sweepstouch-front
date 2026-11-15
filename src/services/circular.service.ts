@@ -177,7 +177,7 @@ export type Pipeline = {
   verification?: AuditVerification | null;
 };
 
-/** Veredicto final de Atenea: tras corregir, vuelve a leer el flyer y dice qué % coincide. */
+/** Veredicto final de Vanessa: tras corregir, vuelve a leer el flyer y dice qué % coincide. */
 export interface AuditVerification {
   accuracy: number;
   checked: number;

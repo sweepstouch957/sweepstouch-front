@@ -9,17 +9,35 @@ import { toneText } from '@/theme/semantic';
 import { alpha, darken, lighten, type Theme } from '@mui/material/styles';
 import type { AgentStatus } from '../constants';
 
-export type Accessory = 'wings' | 'goggles' | 'bun' | 'helmet' | 'glasses' | 'band' | 'wig';
+export type Accessory =
+  | 'portal'
+  | 'pendant'
+  | 'twintails'
+  | 'headband'
+  | 'hat'
+  | 'eyelock'
+  | 'katana';
 
 // Look de cada personaje: colores y accesorio, para reconocerlos sin leer el nombre.
-export const LOOK: Record<string, { shirt: string; hair: string; skin: string; acc: Accessory }> = {
-  hermes: { shirt: '#3B82F6', hair: '#F59E0B', skin: '#F2C9A6', acc: 'wings' },
-  argos: { shirt: '#10B981', hair: '#1F2937', skin: '#D9A074', acc: 'goggles' },
-  mnemosine: { shirt: '#8B5CF6', hair: '#6B21A8', skin: '#F2C9A6', acc: 'bun' },
-  hefesto: { shirt: '#F97316', hair: '#7C2D12', skin: '#C68642', acc: 'helmet' },
-  atenea: { shirt: '#0EA5E9', hair: '#9CA3AF', skin: '#F2C9A6', acc: 'glasses' },
-  iris: { shirt: '#EC4899', hair: '#DB2777', skin: '#E0AC69', acc: 'band' },
-  temis: { shirt: '#111827', hair: '#E5E7EB', skin: '#F2C9A6', acc: 'wig' },
+// Las claves son las del pipeline (no cambian); el nombre que se ve está en ../constants.
+export const LOOK: Record<
+  string,
+  { shirt: string; hair: string; skin: string; acc: Accessory; robe?: string }
+> = {
+  // Finral: magia espacial, abre portales.
+  hermes: { shirt: '#22C55E', hair: '#A9744A', skin: '#F2C9A6', acc: 'portal' },
+  // Yuno: viento, Amanecer Dorado (túnica clara, capa dorada).
+  argos: { shirt: '#EAB308', hair: '#1F2937', skin: '#F2C9A6', acc: 'pendant', robe: '#E8E6F0' },
+  // Noelle: agua, pelo plateado en dos coletas.
+  mnemosine: { shirt: '#A78BFA', hair: '#D9DEEA', skin: '#F7D7BC', acc: 'twintails' },
+  // Asta: antimagia, cinta negra en la frente.
+  hefesto: { shirt: '#EF4444', hair: '#CFC8B4', skin: '#F2C9A6', acc: 'headband' },
+  // Vanessa: hilos del destino, sombrero de bruja.
+  atenea: { shirt: '#EC4899', hair: '#F472B6', skin: '#F2C9A6', acc: 'hat' },
+  // Gauche: magia de espejos, mechón sobre un ojo.
+  iris: { shirt: '#0EA5E9', hair: '#8A6A45', skin: '#F2C9A6', acc: 'eyelock' },
+  // Yami: capitán, magia oscura y katana.
+  temis: { shirt: '#6D28D9', hair: '#111827', skin: '#C68642', acc: 'katana' },
 };
 
 /** Tinta fija de la ilustración (pantalones, ojos, monitores, plantas, café, impresora). */

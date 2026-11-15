@@ -49,8 +49,8 @@ export function useUpcomingActions(storeSlug: string) {
     },
   });
 
-  // "Poner a los agentes a trabajar" sobre un flyer que todavía no salió: Atenea audita el
-  // circular contra el arte y, si se pide, Iris rehace las fotos de sus productos (mode ids).
+  // "Poner a los agentes a trabajar" sobre un flyer que todavía no salió: Vanessa audita el
+  // circular contra el arte y, si se pide, Gauche rehace las fotos de sus productos (mode ids).
   const agents = useMutation({
     mutationFn: async ({ group, photos, missing }: AgentsOptions & { group: UpcomingGroup }) => {
       const id = group.circular?._id;
@@ -70,9 +70,9 @@ export function useUpcomingActions(storeSlug: string) {
       refresh();
       toast.success(
         [
-          v.missing ? `Argos sumó ${d.added} productos que faltaban.` : '',
-          'Atenea audita el flyer contra el arte.',
-          v.photos ? `Iris rehace ${v.group.items.length} fotos.` : '',
+          v.missing ? `Yuno sumó ${d.added} productos que faltaban.` : '',
+          'Vanessa audita el flyer contra el arte.',
+          v.photos ? `Gauche rehace ${v.group.items.length} fotos.` : '',
           'Míralos en Agentes IA.',
         ]
           .filter(Boolean)
@@ -83,7 +83,7 @@ export function useUpcomingActions(storeSlug: string) {
     onError: (e) => toast.error(errMsg(e, 'No se pudo arrancar a los agentes')),
   });
 
-  // Una sola foto: Iris la busca de nuevo en su página (≈ 1 min) y la card se actualiza.
+  // Una sola foto: Gauche la busca de nuevo en su página (≈ 1 min) y la card se actualiza.
   const rephoto = useMutation({
     mutationFn: (id: string) => circularService.rescanProductPhoto(id),
     onSuccess: (d) => {

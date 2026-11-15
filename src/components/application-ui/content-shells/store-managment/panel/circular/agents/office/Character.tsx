@@ -1,130 +1,156 @@
 'use client';
 
 /**
- * Un agente de la oficina: mago de estilo anime, diseño propio (no es un personaje de
- * ninguna serie). Capa corta del color del agente, grimorio que flota y brilla mientras
+ * Un agente de la oficina: mago chibi de dibujo propio, con colores y accesorio inspirados
+ * en los Toros Negros de Black Clover (ver LOOK). Capa corta del color del agente, grimorio que flota y brilla mientras
  * trabaja, su accesorio y el estado sobre la cabeza.
  */
 import { memo } from 'react';
 import type { AgentStatus } from '../constants';
 import { ART, LOOK, type Accessory } from './palette';
 
-function AccessoryArt({ acc, hair }: { acc: Accessory; hair: string }) {
+function AccessoryArt({ acc, hair, tint }: { acc: Accessory; hair: string; tint: string }) {
   switch (acc) {
-    case 'wings':
+    case 'portal':
+      // Portal de magia espacial flotando junto a la mano.
+      return (
+        <g className="book">
+          <ellipse
+            cx={-18.5}
+            cy={-25}
+            rx={3.6}
+            ry={6}
+            fill="#0B1020"
+            stroke={tint}
+            strokeWidth={1.3}
+          />
+          <ellipse
+            cx={-18.5}
+            cy={-25}
+            rx={1.6}
+            ry={3}
+            fill="none"
+            stroke="#A7F3D0"
+            strokeWidth={0.7}
+          />
+        </g>
+      );
+    case 'pendant':
+      // Colgante de piedra azul.
       return (
         <>
           <path
-            d="M-12-50 l-7-5 l1 8z"
-            fill={ART.wing}
-            stroke={ART.wingLine}
+            d="M-5-31.5 Q0-26.5 5-31.5"
+            stroke={ART.trim}
+            strokeWidth={0.8}
+            fill="none"
           />
           <path
-            d="M12-50 l7-5 l-1 8z"
-            fill={ART.wing}
-            stroke={ART.wingLine}
+            d="M0-30.2 l2 2.6 l-2 3 l-2-3z"
+            fill={ART.gem}
+            stroke={ART.trim}
+            strokeWidth={0.5}
           />
         </>
       );
-    case 'goggles':
+    case 'twintails':
+      // Dos coletas largas con lazo.
       return (
         <>
-          <circle
-            cx={-4}
-            cy={-42}
-            r={4}
-            fill="none"
-            stroke={ART.eye}
-            strokeWidth={1.5}
+          <path
+            d="M-12-49 Q-21-44 -18-30 Q-17-25 -19.5-21 Q-13-25 -13.5-33 Q-14-42 -10.5-46z"
+            fill={hair}
+          />
+          <path
+            d="M12-49 Q21-44 18-30 Q17-25 19.5-21 Q13-25 13.5-33 Q14-42 10.5-46z"
+            fill={hair}
           />
           <circle
-            cx={4}
-            cy={-42}
-            r={4}
-            fill="none"
-            stroke={ART.eye}
-            strokeWidth={1.5}
+            cx={-12.5}
+            cy={-48.5}
+            r={1.9}
+            fill={tint}
           />
           <circle
-            cx={0}
-            cy={-50}
-            r={2.2}
-            fill={ART.eye}
+            cx={12.5}
+            cy={-48.5}
+            r={1.9}
+            fill={tint}
           />
         </>
       );
-    case 'bun':
+    case 'headband':
+      // Cinta negra con el emblema dorado.
       return (
-        <circle
-          cx={0}
-          cy={-56}
-          r={5}
+        <>
+          <path
+            d="M-11.6-47.6 Q0-52.6 11.6-47.6 L11.4-44.8 Q0-49.8 -11.4-44.8Z"
+            fill="#111827"
+          />
+          <path
+            d="M0-50.6 l1.5 1.5 l-1.5 1.5 l-1.5-1.5z"
+            fill={ART.trim}
+          />
+        </>
+      );
+    case 'hat':
+      // Melena larga y sombrero de bruja caído hacia atrás.
+      return (
+        <>
+          <path
+            d="M-12-46 Q-17-36 -14.5-25 Q-11-29 -11-38z M12-46 Q17-36 14.5-25 Q11-29 11-38z"
+            fill={hair}
+          />
+          <path
+            d="M-9-51.5 Q-9-58 -13-63.5 Q-2-62 3-52.5Z"
+            fill="#4C1D95"
+          />
+          <ellipse
+            cx={-1}
+            cy={-51.5}
+            rx={14.5}
+            ry={3.4}
+            fill="#5B21B6"
+          />
+          <path
+            d="M-9.5-53.2 Q-3-55.4 3.4-53.6"
+            stroke={tint}
+            strokeWidth={1.4}
+            fill="none"
+          />
+        </>
+      );
+    case 'eyelock':
+      // Mechón que tapa un ojo (el del espejo).
+      return (
+        <path
+          d="M1-51.5 Q11.5-51 11.8-40 Q9.5-37.2 2.2-38.6 Q4.2-45 1-51.5Z"
           fill={hair}
         />
       );
-    case 'helmet':
-      return (
-        <path
-          d="M-12-46 Q-12-58 0-58 Q12-58 12-46Z"
-          fill={ART.helmet}
-          stroke={ART.helmetLine}
-        />
-      );
-    case 'glasses':
+    case 'katana':
+      // Katana a la espalda y barba de tres días.
       return (
         <>
-          <circle
-            cx={-4}
-            cy={-42}
-            r={3.5}
-            fill={ART.lens}
-            stroke={ART.eye}
-            strokeWidth={1.2}
-          />
-          <circle
-            cx={4}
-            cy={-42}
-            r={3.5}
-            fill={ART.lens}
-            stroke={ART.eye}
-            strokeWidth={1.2}
+          <path
+            d="M-9-32 L-17.5-51"
+            stroke="#0B0B12"
+            strokeWidth={2.2}
+            strokeLinecap="round"
           />
           <path
-            d="M-13-48 Q-8-53 -4-50 M13-48 Q8-53 4-50"
-            stroke={ART.brow}
-            strokeWidth={1.5}
+            d="M-15.4-43.6 l3.6-1.6"
+            stroke={ART.trim}
+            strokeWidth={1.6}
+            strokeLinecap="round"
+          />
+          <path
+            d="M-4.4-33.6 Q0-31 4.4-33.6"
+            stroke="#1F2937"
+            strokeWidth={1.7}
+            strokeLinecap="round"
             fill="none"
-          />
-        </>
-      );
-    case 'band':
-      // El degradado #rainbow vive en los <defs> del plano de la oficina.
-      return (
-        <path
-          d="M-11-47 Q0-52 11-47"
-          stroke="url(#rainbow)"
-          strokeWidth={3}
-          fill="none"
-        />
-      );
-    case 'wig':
-      return (
-        <>
-          <rect
-            x={-13}
-            y={-50}
-            width={5}
-            height={14}
-            rx={2.5}
-            fill={ART.wig}
-          />
-          <rect
-            x={8}
-            y={-50}
-            width={5}
-            height={14}
-            rx={2.5}
-            fill={ART.wig}
+            opacity={0.55}
           />
         </>
       );
@@ -253,7 +279,7 @@ fill={ART.trim} />
       </g>
       {/* túnica */}
       <path d="M-8.5-31 h17 l2 19 q-10.5 3.5 -21 0z"
-fill={ART.robe} />
+fill={L.robe || ART.robe} />
       <path d="M-1.2-31 h2.4 l1 20 h-4.4z"
 fill={L.shirt}
 opacity={0.9} />
@@ -276,7 +302,7 @@ y={-29}
 width={5}
 height={13}
 rx={2.5}
-fill={ART.robe} />
+fill={L.robe || ART.robe} />
         <rect x={-13.8}
 y={-19.5}
 width={5.6}
@@ -294,7 +320,7 @@ y={-29}
 width={5}
 height={13}
 rx={2.5}
-fill={ART.robe} />
+fill={L.robe || ART.robe} />
         <rect x={8.2}
 y={-19.5}
 width={5.6}
@@ -422,6 +448,7 @@ fill={ART.blush} />
       <AccessoryArt
         acc={L.acc}
         hair={L.hair}
+        tint={L.shirt}
       />
       {/* estado sobre la cabeza: se des-espeja para que el tilde no salga al revés */}
       <g transform={`scale(${flip ? -1 : 1},1)`}>
@@ -456,7 +483,7 @@ export const CharacterThumb = memo(function CharacterThumb({
     <svg
       width={width}
       height={height}
-      viewBox="-18 -64 44 68"
+      viewBox="-23 -66 49 70"
       aria-hidden
     >
       <Character

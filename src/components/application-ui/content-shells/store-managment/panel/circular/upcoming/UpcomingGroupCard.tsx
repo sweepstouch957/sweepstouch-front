@@ -27,7 +27,7 @@ type Props = {
   group: UpcomingGroup;
   /** Banner que sale el mismo día, si hay. */
   banner?: UpcomingBanner;
-  /** Producto cuyo editor se está abriendo / cuya foto rehace Iris. */
+  /** Producto cuyo editor se está abriendo / cuya foto rehace Gauche. */
   editingId?: string;
   rephotoingId?: string;
   artBusy: boolean;
@@ -206,7 +206,7 @@ function UpcomingGroupCard({
                 },
                 {
                   label: 'Revisar con los agentes',
-                  hint: 'Atenea coteja precios y nombres contra el arte; Iris rehace las fotos que no se parecen. El avance se ve en Agentes IA.',
+                  hint: 'Vanessa coteja precios y nombres contra el arte; Gauche rehace las fotos que no se parecen. El avance se ve en Agentes IA.',
                   onClick: () => onOpenAgents(g),
                   disabled: agentsBusy,
                 },

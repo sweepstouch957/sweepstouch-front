@@ -117,7 +117,7 @@ function ListStatusKpis({ summary: s }: { summary: CatalogSummary }) {
       <Stat
         label="Visibles sin foto"
         value={String(s.noImage)}
-        sub={s.noImage ? 'Iris las rehace; o Rescanear fotos en Productos' : 'todas con foto'}
+        sub={s.noImage ? 'Gauche las rehace; o Rescanear fotos en Productos' : 'todas con foto'}
       />
     </Box>
   );

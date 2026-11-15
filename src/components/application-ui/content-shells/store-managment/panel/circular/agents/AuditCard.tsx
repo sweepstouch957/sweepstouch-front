@@ -1,6 +1,6 @@
 'use client';
 
-/** Paso 3 · Auditoría por página (Atenea): % de acierto por página y lo que corrigió sola. */
+/** Paso 3 · Auditoría por página (Vanessa): % de acierto por página y lo que corrigió sola. */
 import type { AuditVerification, PageAudit } from '@/services/circular.service';
 import { Box, Button, Chip, CircularProgress, Stack, Tooltip, Typography } from '@mui/material';
 import { memo } from 'react';
@@ -75,7 +75,7 @@ export default function AuditCard({
   running: boolean;
   pages: PageAudit[];
   accuracy: number | null | undefined;
-  /** Veredicto final: tras corregir, Atenea releyó el flyer y dice qué % coincide. */
+  /** Veredicto final: tras corregir, Vanessa releyó el flyer y dice qué % coincide. */
   verification?: AuditVerification | null;
   /** Hay una extracción corriendo o el pedido de auditoría está en vuelo. */
   disabled: boolean;
@@ -85,7 +85,7 @@ export default function AuditCard({
   return (
     <AgentCard
       step={step}
-      title="Auditoría por página (Atenea)"
+      title="Auditoría por página (Vanessa)"
       description="Cuánto acertó la lectura en cada página, qué corrigió sola y el veredicto final: vuelve a leer el flyer con los datos corregidos y dice si lo guardado es lo que imprime."
       action={
         hasFile && (

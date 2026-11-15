@@ -1,7 +1,7 @@
 'use client';
 
 /** Trabajos largos del catálogo que corren en el backend y se siguen por sondeo:
- *  rescanear fotos (Iris) y completar marca / tamaño. */
+ *  rescanear fotos (Gauche) y completar marca / tamaño. */
 import { circularService, type CatalogSummary } from '@/services/circular.service';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
@@ -70,7 +70,7 @@ export function useRescanPhotos(storeSlug: string, ruling: Ruling) {
         return;
       }
       setWatch(true);
-      toast.success('Iris está rescaneando las fotos… se van actualizando solas');
+      toast.success('Gauche está rescaneando las fotos… se van actualizando solas');
     },
     onError: (e: any) =>
       toast.error(e?.response?.data?.error || e?.message || 'No se pudo rescanear'),

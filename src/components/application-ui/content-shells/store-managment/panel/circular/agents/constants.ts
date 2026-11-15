@@ -21,21 +21,21 @@ export const ORDER = ['hermes', 'argos', 'mnemosine', 'hefesto', 'atenea', 'iris
 
 /** El equipo por defecto, para pintar la oficina aunque la tienda no tenga circular todavía. */
 export const TEAM: Pipeline['agents'] = {
-  hermes: { name: 'Hermes', emoji: '📨', role: 'Trae el archivo y arma las páginas' },
-  argos: { name: 'Argos', emoji: '👁️', role: 'Lee los productos de cada página' },
+  hermes: { name: 'Finral', emoji: '🌀', role: 'Trae el archivo y arma las páginas' },
+  argos: { name: 'Yuno', emoji: '🍃', role: 'Lee los productos de cada página' },
   mnemosine: {
-    name: 'Mnemósine',
-    emoji: '🧠',
+    name: 'Noelle',
+    emoji: '💧',
     role: 'Busca cada producto en la base: si ya estaba lo reutiliza, si no lo agrega',
   },
-  hefesto: { name: 'Hefesto', emoji: '🔧', role: 'Guarda y actualiza el catálogo de la tienda' },
+  hefesto: { name: 'Asta', emoji: '⚔️', role: 'Guarda y actualiza el catálogo de la tienda' },
   atenea: {
-    name: 'Atenea',
-    emoji: '🦉',
+    name: 'Vanessa',
+    emoji: '🧵',
     role: 'Audita página por página: precios, cantidades, letra chica y fotos',
   },
-  iris: { name: 'Iris', emoji: '🌈', role: 'Limpia y genera las fotos de producto' },
-  temis: { name: 'Temis', emoji: '⚖️', role: 'Decide qué se ve en la lista y quita duplicados' },
+  iris: { name: 'Gauche', emoji: '🪞', role: 'Limpia y genera las fotos de producto' },
+  temis: { name: 'Yami', emoji: '🌑', role: 'Decide qué se ve en la lista y quita duplicados' },
 };
 
 // Qué hace cada uno, contado para quien no sabe de IA (se ve al hacerle click).
@@ -57,13 +57,13 @@ export const DETAIL: Record<string, string> = {
 
 /** Nombre del autor de una lección ("all" = para todos). */
 export const AGENT_NAME: Record<string, string> = {
-  hermes: 'Hermes',
-  argos: 'Argos',
-  mnemosine: 'Mnemósine',
-  hefesto: 'Hefesto',
-  atenea: 'Atenea',
-  iris: 'Iris',
-  temis: 'Temis',
+  hermes: 'Finral',
+  argos: 'Yuno',
+  mnemosine: 'Noelle',
+  hefesto: 'Asta',
+  atenea: 'Vanessa',
+  iris: 'Gauche',
+  temis: 'Yami',
   all: 'Todos',
 };
 

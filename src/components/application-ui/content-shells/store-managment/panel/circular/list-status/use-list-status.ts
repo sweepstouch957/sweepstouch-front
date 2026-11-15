@@ -43,13 +43,13 @@ export function useRulingPreview(onOpen: (url: string, title: string) => void) {
   });
 }
 
-// "Que los agentes lo arreglen": Temis deja visibles sólo los del flyer y quita duplicados,
-// Atenea lo audita página por página, y la revisión diaria deja lo dudoso en Agentes IA.
+// "Que los agentes lo arreglen": Yami deja visibles sólo los del flyer y quita duplicados,
+// Vanessa lo audita página por página, y la revisión diaria deja lo dudoso en Agentes IA.
 export function useAgentsFix(storeSlug: string) {
   const refresh = useRefreshStoreData(storeSlug);
   return useMutation({
     mutationFn: async (r: Ruling | null) => {
-      // Hefesto primero: limpieza fija de lo guardado (precios "9$95", regular absurdo,
+      // Asta primero: limpieza fija de lo guardado (precios "9$95", regular absurdo,
       // "at the counter"/límite/compra mínima repetidos en la letra chica).
       await circularService.catalogCleanup(storeSlug, true).catch(() => null);
       const v = await circularService.syncVisibility(storeSlug);
@@ -60,9 +60,9 @@ export function useAgentsFix(storeSlug: string) {
     onSuccess: (v) => {
       refresh();
       toast.success(
-        `Temis: ${v.inCircular} del flyer visibles · ${v.hidden} ocultados${
+        `Yami: ${v.inCircular} del flyer visibles · ${v.hidden} ocultados${
           v.duplicates ? ` · ${v.duplicates} duplicados quitados` : ''
-        }. Atenea sigue auditando: míralo en Agentes IA.`,
+        }. Vanessa sigue auditando: míralo en Agentes IA.`,
         { duration: 9000 }
       );
     },

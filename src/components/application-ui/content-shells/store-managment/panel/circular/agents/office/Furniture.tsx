@@ -2,7 +2,7 @@
 
 /**
  * Cosas del claro del bosque, en isométrico. Mismos nombres y props que cuando era una
- * oficina (la escena no cambia): el "escritorio" es un tocón con un cristal que se enciende
+ * oficina (la escena no cambia): el "escritorio" es un tocón con un grimorio que se enciende
  * cuando el mago trabaja, la "planta" es un pino, el "café" una fogata y la "impresora" un
  * pozo de piedra.
  */
@@ -13,11 +13,12 @@ import type { OfficePalette } from './palette';
 /** Colores de la ilustración del bosque (fijos: son su identidad, como los personajes). */
 const WOOD = { bark: '#6B4423', barkDark: '#4A2E17', top: '#D9B382', ring: '#B58A55' };
 const PINE = ['#14532D', '#166534', '#15803D'];
+const GRIMOIRE = { cover: '#3B1D5E', page: '#FFF8E7', gold: '#F5C84B' };
 const STONE = { light: '#9CA3AF', mid: '#6B7280', dark: '#4B5563' };
 
 const shadow = 'rgba(0,0,0,.18)';
 
-/** Tocón de trabajo: encima flota un cristal que brilla con el color de la marca al trabajar. */
+/** Tocón de trabajo: encima flota un grimorio que brilla con el color de la marca al trabajar. */
 export const Desk = memo(function Desk({
   x,
   y,
@@ -26,7 +27,7 @@ export const Desk = memo(function Desk({
 }: {
   x: number;
   y: number;
-  /** Cristal encendido: el agente está trabajando. */
+  /** Grimorio encendido: el agente está trabajando. */
   on: boolean;
   pal: OfficePalette;
 }) {
@@ -95,19 +96,48 @@ export const Desk = memo(function Desk({
           opacity={0.35}
         />
       )}
-      <g className={on ? 'book on' : ''}>
+      {/* grimorio que flota: tapa con el trébol; se enciende con la marca al trabajar */}
+      <g className={on ? 'book on' : 'book'}>
         <path
-          d="M0-44 l6 9 l-6 12 l-6-12z"
-          fill={on ? pal.brand : STONE.light}
+          d="M-9-44 l16-3 v21 l-16 3z"
+          fill={on ? pal.brand : GRIMOIRE.cover}
           className={on ? 'screen' : ''}
         />
         <path
-          d="M0-44 l6 9 l-6 3z"
-          fill="rgba(255,255,255,.4)"
+          d="M7-47 l3 1.6 v21 l-3-1.6z"
+          fill={GRIMOIRE.page}
         />
         <path
-          d="M0-23 l-6-12 l6 3z"
-          fill="rgba(0,0,0,.18)"
+          d="M-9-44 l16-3 v21 l-16 3z"
+          fill="none"
+          stroke={GRIMOIRE.gold}
+          strokeWidth={0.9}
+          strokeLinejoin="round"
+        />
+        {/* trébol de tres hojas en la tapa */}
+        <circle
+          cx={-1}
+          cy={-37.6}
+          r={2.2}
+          fill={GRIMOIRE.gold}
+        />
+        <circle
+          cx={-3.3}
+          cy={-33.8}
+          r={2.2}
+          fill={GRIMOIRE.gold}
+        />
+        <circle
+          cx={1.3}
+          cy={-34.6}
+          r={2.2}
+          fill={GRIMOIRE.gold}
+        />
+        <path
+          d="M-1-34.5 l.4 5"
+          stroke={GRIMOIRE.gold}
+          strokeWidth={1}
+          strokeLinecap="round"
         />
       </g>
       {/* hongo al pie */}
