@@ -1,6 +1,7 @@
 'use client';
 
 /** Card de un producto que espera su fecha: foto, precio que va a salir, letra chica, acciones. */
+import Image from 'next/image';
 import type { StoreProduct } from '@/services/circular.service';
 import { cloudinaryThumb } from '@/utils/cloudinary';
 import CameraswitchOutlinedIcon from '@mui/icons-material/CameraswitchOutlined';
@@ -109,13 +110,16 @@ function UpcomingProductCard({
         }}
       >
         {p.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          // Cloudinary ya entrega la miniatura: sin re-optimizar en Next.
+          <Image
             src={cloudinaryThumb(p.imageUrl, 320, 240, 'fit')}
             alt=""
-            loading="lazy"
-            decoding="async"
+            width={320}
+            height={240}
+            unoptimized
             style={{
+              width: 'auto',
+              height: 'auto',
               maxWidth: '100%',
               maxHeight: '100%',
               objectFit: 'contain',

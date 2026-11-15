@@ -1,6 +1,7 @@
 'use client';
 
 /** Un día de salida: cuándo sale, de dónde viene (campaña o circular) y sus productos. */
+import Image from 'next/image';
 import {
   PanelCard,
   panelDivider,
@@ -184,12 +185,13 @@ function UpcomingGroupCard({
                   display: 'block',
                 }}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                {/* Cloudinary ya entrega la miniatura: sin re-optimizar en Next. */}
+                <Image
                   src={cloudinaryThumb(banner.imageUrl, 360, 120, 'fill')}
                   alt=""
-                  loading="lazy"
-                  decoding="async"
+                  width={360}
+                  height={120}
+                  unoptimized
                   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                 />
               </Box>

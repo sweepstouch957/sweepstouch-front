@@ -4,6 +4,14 @@ import type { CatalogSummary } from '@/services/circular.service';
 import { ChoiceDialog, type ChoiceOption } from './choice-dialog';
 import type { RescanMode } from './constants';
 
+const NOTE = (
+  <>
+    &quot;Sólo las malas&quot; = sin foto o con recorte crudo. &quot;Todas&quot; rehace también
+    las que ya están limpias (útil si quedaron con el vecino o con varios productos). Para una
+    sola foto, ábrela con el lápiz y usa &quot;Rescanear foto&quot;.
+  </>
+);
+
 /** Gauche rescanea fotos: las del flyer/circular vigente, todas las visibles o sólo las malas. */
 export function RescanPhotosDialog({
   open,
@@ -38,13 +46,7 @@ export function RescanPhotosDialog({
       onClose={onClose}
       title="Rescanear fotos"
       body="Gauche vuelve a buscar cada producto en su página del circular, recorta sólo su foto, comprueba que sea él y la limpia. Si no lo encuentra, genera la foto desde el nombre."
-      note={
-        <>
-          &quot;Sólo las malas&quot; = sin foto o con recorte crudo. &quot;Todas&quot; rehace
-          también las que ya están limpias (útil si quedaron con el vecino o con varios productos).
-          Para una sola foto, ábrela con el lápiz y usa &quot;Rescanear foto&quot;.
-        </>
-      }
+      note={NOTE}
       options={options}
     />
   );
