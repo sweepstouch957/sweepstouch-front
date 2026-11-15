@@ -1,22 +1,16 @@
 'use client';
 
 /**
- * Cabecera del panel: título, tienda, estado de "¿Quiere lista?" y vista previa, con las
- * pestañas abajo en la misma tarjeta (así el título no compite con el contenido).
+ * Cabecera del panel: título, tienda, estado de "¿Quiere lista?" y vista previa; el
+ * circular y el flyer vigentes; y las pestañas abajo en la misma tarjeta (así el título no
+ * compite con el contenido). Las pestañas van agrupadas: 5 grupos en vez de 9 sueltas.
  */
-import {
-  Box,
-  Chip,
-  Stack,
-  Tab,
-  Tabs,
-  Typography,
-} from '@mui/material';
+import { Box, Chip, Stack, Tab, Tabs, Typography } from '@mui/material';
 import { memo } from 'react';
 import { PanelCard } from '../../../panel-kit';
 import PreRcsPreviewButton from '../preview';
 import CurrentArt from './CurrentArt';
-import { PANEL_TABS, type PanelTab } from './tabs';
+import { groupOf, PANEL_GROUPS, type PanelTab } from './tabs';
 
 type Props = {
   storeId: string;
@@ -42,6 +36,7 @@ function PanelHeader({
   badges,
 }: Props) {
   const noList = listsEnabled === false;
+  const group = groupOf(tab);
   return (
     <PanelCard sx={{ mb: 2 }}>
       <Stack
@@ -104,6 +99,7 @@ function PanelHeader({
           storeSlug={storeSlug}
         />
       </Stack>
+
       {/* Circular y flyer vigentes: se ven desde cualquier pestaña. */}
       <CurrentArt
         storeId={storeId}
@@ -111,9 +107,13 @@ function PanelHeader({
         storeName={storeName}
         onTab={onTab}
       />
+
       <Tabs
-        value={tab}
-        onChange={(_, v: PanelTab) => onTab(v)}
+        value={group.id}
+        onChange={(_, id: string) => {
+          const next = PANEL_GROUPS.find((g) => g.id === id);
+          if (next) onTab(next.tabs[0].id);
+        }}
         variant="scrollable"
         allowScrollButtonsMobile
         sx={{
@@ -122,13 +122,13 @@ function PanelHeader({
           '& .MuiTab-root': { minHeight: 44, textTransform: 'none', fontWeight: 600, fontSize: 14 },
         }}
       >
-        {PANEL_TABS.map((t) => {
-          const badge = badges?.[t.id] ?? 0;
+        {PANEL_GROUPS.map((g) => {
+          const badge = g.tabs.reduce((n, t) => n + (badges?.[t.id] ?? 0), 0);
           return (
             <Tab
-              key={t.id}
-              value={t.id}
-              icon={t.icon}
+              key={g.id}
+              value={g.id}
+              icon={g.icon}
               iconPosition="start"
               label={
                 badge > 0 ? (
@@ -137,7 +137,7 @@ function PanelHeader({
                     alignItems="center"
                     gap={0.75}
                   >
-                    {t.label}
+                    {g.label}
                     <Chip
                       size="small"
                       color="primary"
@@ -146,13 +146,43 @@ function PanelHeader({
                     />
                   </Stack>
                 ) : (
-                  t.label
+                  g.label
                 )
               }
             />
           );
         })}
       </Tabs>
+
+      {/* Lo que hay dentro del grupo: sólo si tiene más de una vista. */}
+      {group.tabs.length > 1 && (
+        <Stack
+          direction="row"
+          flexWrap="wrap"
+          gap={0.75}
+          role="tablist"
+          aria-label={group.label}
+          sx={{ px: { xs: 2, md: 2.5 }, py: 1.25, borderTop: '1px solid', borderColor: 'divider' }}
+        >
+          {group.tabs.map((t) => {
+            const on = t.id === tab;
+            const badge = badges?.[t.id] ?? 0;
+            return (
+              <Chip
+                key={t.id}
+                role="tab"
+                aria-selected={on}
+                clickable
+                onClick={() => onTab(t.id)}
+                color={on ? 'primary' : 'default'}
+                variant={on ? 'filled' : 'outlined'}
+                label={badge > 0 ? `${t.label} · ${badge}` : t.label}
+                sx={{ fontWeight: 700, height: 30, px: 0.5 }}
+              />
+            );
+          })}
+        </Stack>
+      )}
     </PanelCard>
   );
 }

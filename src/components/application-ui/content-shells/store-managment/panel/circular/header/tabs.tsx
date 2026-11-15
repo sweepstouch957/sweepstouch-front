@@ -33,3 +33,49 @@ export const PANEL_TABS: { id: PanelTab; label: string; icon: ReactElement }[] =
   // Configuración (19 oct 2026): "¿Quiere lista?" y el número de listas salían en TODAS las pestañas.
   { id: 'config', label: 'Configuración', icon: <SettingsOutlinedIcon fontSize="small" /> },
 ];
+
+/**
+ * Las 9 pestañas en 5 grupos (nov 2026): eran demasiadas en una fila y había que desplazar
+ * para llegar a Agentes o Configuración. El grupo es la pestaña; lo de adentro se elige con
+ * los botones de abajo. Los ids de `PanelTab` no cambian: los "ir a" de las secciones siguen igual.
+ */
+export const PANEL_GROUPS: {
+  id: string;
+  label: string;
+  icon: ReactElement;
+  tabs: { id: PanelTab; label: string }[];
+}[] = [
+  { id: 'circular', label: 'Circular', icon: <CalendarMonthRoundedIcon fontSize="small" />, tabs: [{ id: 'circular', label: 'Circular' }] },
+  {
+    id: 'products',
+    label: 'Productos',
+    icon: <Inventory2OutlinedIcon fontSize="small" />,
+    tabs: [
+      { id: 'products', label: 'Hoy en la lista' },
+      { id: 'upcoming', label: 'Próximas ofertas' },
+    ],
+  },
+  {
+    id: 'customers',
+    label: 'Clientes',
+    icon: <FactCheckOutlinedIcon fontSize="small" />,
+    tabs: [
+      { id: 'lists', label: 'Listas' },
+      { id: 'purchases', label: 'Compras' },
+      { id: 'messages', label: 'Mensajes' },
+    ],
+  },
+  { id: 'agents', label: 'Agentes IA', icon: <SmartToyOutlinedIcon fontSize="small" />, tabs: [{ id: 'agents', label: 'Agentes IA' }] },
+  {
+    id: 'settings',
+    label: 'Ajustes',
+    icon: <SettingsOutlinedIcon fontSize="small" />,
+    tabs: [
+      { id: 'config', label: 'Configuración' },
+      { id: 'postcard', label: 'Postcard' },
+    ],
+  },
+];
+
+export const groupOf = (tab: PanelTab) =>
+  PANEL_GROUPS.find((g) => g.tabs.some((t) => t.id === tab)) ?? PANEL_GROUPS[0];

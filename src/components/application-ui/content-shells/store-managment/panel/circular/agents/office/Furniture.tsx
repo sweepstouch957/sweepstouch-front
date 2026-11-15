@@ -1,53 +1,23 @@
 'use client';
 
-/** Muebles de la oficina en isométrico: escritorio con monitor, planta, café e impresora. */
+/**
+ * Cosas del claro del bosque, en isométrico. Mismos nombres y props que cuando era una
+ * oficina (la escena no cambia): el "escritorio" es un tocón con un cristal que se enciende
+ * cuando el mago trabaja, la "planta" es un pino, el "café" una fogata y la "impresora" un
+ * pozo de piedra.
+ */
 import { memo } from 'react';
-import { iso, poly } from './geometry';
-import { ART, type OfficePalette } from './palette';
+import { iso } from './geometry';
+import type { OfficePalette } from './palette';
 
-/** Caja isométrica de tres caras (arriba, izquierda, derecha). */
-function IsoBox({
-  x,
-  y,
-  w,
-  d,
-  h,
-  pal,
-}: {
-  x: number;
-  y: number;
-  w: number;
-  d: number;
-  h: number;
-  pal: OfficePalette;
-}) {
-  const a = iso(x, y);
-  const b = iso(x + w, y);
-  const c = iso(x + w, y + d);
-  const e = iso(x, y + d);
-  return (
-    <g>
-      <polygon
-        points={poly([
-          { ...a, dy: h },
-          { ...b, dy: h },
-          { ...c, dy: h },
-          { ...e, dy: h },
-        ])}
-        fill={pal.top}
-      />
-      <polygon
-        points={poly([{ ...e, dy: h }, { ...c, dy: h }, c, e])}
-        fill={pal.left}
-      />
-      <polygon
-        points={poly([{ ...c, dy: h }, { ...b, dy: h }, b, c])}
-        fill={pal.right}
-      />
-    </g>
-  );
-}
+/** Colores de la ilustración del bosque (fijos: son su identidad, como los personajes). */
+const WOOD = { bark: '#6B4423', barkDark: '#4A2E17', top: '#D9B382', ring: '#B58A55' };
+const PINE = ['#14532D', '#166534', '#15803D'];
+const STONE = { light: '#9CA3AF', mid: '#6B7280', dark: '#4B5563' };
 
+const shadow = 'rgba(0,0,0,.18)';
+
+/** Tocón de trabajo: encima flota un cristal que brilla con el color de la marca al trabajar. */
 export const Desk = memo(function Desk({
   x,
   y,
@@ -56,253 +26,273 @@ export const Desk = memo(function Desk({
 }: {
   x: number;
   y: number;
-  /** Monitor prendido: el agente está trabajando. */
+  /** Cristal encendido: el agente está trabajando. */
   on: boolean;
   pal: OfficePalette;
 }) {
-  const m = iso(x + 0.7, y + 0.35);
-  const chair = iso(x + 0.8, y + 1.1);
+  const p = iso(x + 0.55, y + 0.45);
   return (
-    <g>
-      <IsoBox
-        x={x}
-        y={y}
-        w={1.6}
-        d={0.9}
-        h={22}
-        pal={pal}
+    <g transform={`translate(${p.x},${p.y})`}>
+      <ellipse
+        cx={0}
+        cy={4}
+        rx={25}
+        ry={10}
+        fill={shadow}
       />
-      {/* monitor */}
-      <g transform={`translate(${m.x},${m.y - 22})`}>
-        <rect
-          x={-2}
-          y={-3}
-          width={4}
-          height={4}
-          fill={ART.stand}
+      {/* raíces */}
+      <path
+        d="M-21 2 q-7 3 -9 7 q7-1 11-3z M21 2 q7 3 9 7 q-7-1 -11-3z"
+        fill={WOOD.barkDark}
+      />
+      {/* tronco */}
+      <path
+        d="M-20-16 v17 q20 10 40 0 v-17z"
+        fill={WOOD.bark}
+      />
+      <path
+        d="M-12-12 v14 M-3-10 v15 M8-11 v15 M15-13 v12"
+        stroke={WOOD.barkDark}
+        strokeWidth={1.4}
+        strokeLinecap="round"
+        fill="none"
+      />
+      {/* corte con anillos */}
+      <ellipse
+        cx={0}
+        cy={-16}
+        rx={20}
+        ry={8}
+        fill={WOOD.top}
+      />
+      <ellipse
+        cx={0}
+        cy={-16}
+        rx={13}
+        ry={5}
+        fill="none"
+        stroke={WOOD.ring}
+        strokeWidth={1}
+      />
+      <ellipse
+        cx={0}
+        cy={-16}
+        rx={6}
+        ry={2.3}
+        fill="none"
+        stroke={WOOD.ring}
+        strokeWidth={1}
+      />
+      {/* cristal */}
+      {on && (
+        <ellipse
+          className="screen"
+          cx={0}
+          cy={-17}
+          rx={11}
+          ry={4}
+          fill={pal.brand}
+          opacity={0.35}
         />
-        <rect
-          x={-15}
-          y={-23}
-          width={30}
-          height={20}
-          rx={2}
-          fill={ART.monitor}
-        />
-        <rect
-          x={-13}
-          y={-21}
-          width={26}
-          height={16}
-          rx={1}
-          fill={on ? pal.brand : pal.screenOff}
+      )}
+      <g className={on ? 'book on' : ''}>
+        <path
+          d="M0-44 l6 9 l-6 12 l-6-12z"
+          fill={on ? pal.brand : STONE.light}
           className={on ? 'screen' : ''}
         />
-        {on && (
-          <>
-            <rect
-              x={-10}
-              y={-18}
-              width={14}
-              height={2}
-              fill="rgba(255,255,255,.8)"
-            />
-            <rect
-              x={-10}
-              y={-14}
-              width={18}
-              height={2}
-              fill="rgba(255,255,255,.6)"
-            />
-            <rect
-              x={-10}
-              y={-10}
-              width={9}
-              height={2}
-              fill="rgba(255,255,255,.7)"
-            />
-          </>
-        )}
-      </g>
-      {/* teclado + taza */}
-      <g transform={`translate(${m.x - 2},${m.y - 22})`}>
-        <rect
-          x={-10}
-          y={4}
-          width={20}
-          height={5}
-          rx={1}
-          fill={pal.keyboard}
-        />
-      </g>
-      <g transform={`translate(${m.x + 18},${m.y - 22})`}>
-        <rect
-          x={-3}
-          y={0}
-          width={6}
-          height={6}
-          rx={1.5}
-          fill={pal.brand}
+        <path
+          d="M0-44 l6 9 l-6 3z"
+          fill="rgba(255,255,255,.4)"
         />
         <path
-          d="M3 1 q4 1 0 4"
-          stroke={pal.brand}
-          strokeWidth={1.2}
-          fill="none"
+          d="M0-23 l-6-12 l6 3z"
+          fill="rgba(0,0,0,.18)"
         />
       </g>
-      {/* silla */}
-      <ellipse
-        cx={chair.x}
-        cy={chair.y - 4}
-        rx={12}
-        ry={6}
-        fill={pal.chair}
+      {/* hongo al pie */}
+      <path
+        d="M-17 5 v-5"
+        stroke="#F5F0E6"
+        strokeWidth={2.4}
+        strokeLinecap="round"
+      />
+      <path
+        d="M-22 0 q5-7 10 0z"
+        fill="#DC2626"
+      />
+      <circle
+        cx={-18.5}
+        cy={-2.2}
+        r={0.9}
+        fill="#fff"
       />
     </g>
   );
 });
 
+/** Pino. */
 export const Plant = memo(function Plant({ x, y }: { x: number; y: number }) {
   const p = iso(x, y);
   return (
     <g transform={`translate(${p.x},${p.y})`}>
       <ellipse
         cx={0}
-        cy={0}
-        rx={9}
-        ry={4}
-        fill="rgba(0,0,0,.15)"
+        cy={1}
+        rx={14}
+        ry={5}
+        fill={shadow}
       />
       <rect
-        x={-6}
+        x={-3}
         y={-12}
-        width={12}
-        height={12}
-        rx={2}
-        fill={ART.pot}
+        width={6}
+        height={13}
+        rx={1.5}
+        fill={WOOD.bark}
       />
-      <circle
-        cx={-5}
-        cy={-18}
-        r={6}
-        fill={ART.leaf[0]}
+      <path
+        d="M-18-10 L0-36 L18-10z"
+        fill={PINE[0]}
       />
-      <circle
-        cx={5}
-        cy={-19}
-        r={6}
-        fill={ART.leaf[1]}
+      <path
+        d="M-14-26 L0-50 L14-26z"
+        fill={PINE[1]}
       />
-      <circle
-        cx={0}
-        cy={-25}
-        r={7}
-        fill={ART.leaf[2]}
+      <path
+        d="M-10-42 L0-62 L10-42z"
+        fill={PINE[2]}
+      />
+      <path
+        d="M0-62 L10-42 L3-42z M0-50 L14-26 L5-26z M0-36 L18-10 L7-10z"
+        fill="rgba(255,255,255,.1)"
       />
     </g>
   );
 });
 
+/** Fogata: donde se juntan los que esperan. */
 export const Coffee = memo(function Coffee({
   x,
   y,
-  pal,
 }: {
   x: number;
   y: number;
   pal: OfficePalette;
 }) {
-  const p = iso(x, y);
+  const p = iso(x + 0.5, y + 0.4);
   return (
-    <g>
-      <IsoBox
-        x={x}
-        y={y}
-        w={0.9}
-        d={0.9}
-        h={26}
-        pal={pal}
+    <g transform={`translate(${p.x},${p.y})`}>
+      <ellipse
+        cx={0}
+        cy={2}
+        rx={17}
+        ry={7}
+        fill={shadow}
       />
-      <g transform={`translate(${p.x + 10},${p.y - 26})`}>
-        <rect
-          x={-8}
-          y={-22}
-          width={16}
-          height={22}
-          rx={2}
-          fill={ART.machine}
+      {/* piedras */}
+      {[-13, -6, 2, 10].map((sx, i) => (
+        <ellipse
+          key={sx}
+          cx={sx + 1}
+          cy={i % 2 ? 4 : 1}
+          rx={4.5}
+          ry={3}
+          fill={i % 2 ? STONE.mid : STONE.light}
         />
-        <rect
-          x={-5}
-          y={-18}
-          width={10}
-          height={6}
-          rx={1}
-          fill={ART.machineLight}
-        />
-        <rect
-          x={-3}
-          y={-8}
-          width={6}
-          height={5}
-          fill={ART.paper}
-        />
-        <path
-          className="steam"
-          d="M-2-24 q2-3 0-6 M2-24 q2-3 0-6"
-          stroke={ART.machineLight}
-          strokeWidth={1}
-          fill="none"
-        />
+      ))}
+      {/* leños */}
+      <path
+        d="M-11-1 l22-5 M-11-6 l22 5"
+        stroke={WOOD.barkDark}
+        strokeWidth={4}
+        strokeLinecap="round"
+      />
+      {/* fuego */}
+      <path
+        className="screen"
+        d="M0-26 q8 9 6 16 q-1 6 -6 6 q-5 0 -6-6 q-1-6 3-9 q0 4 2 4 q2-4 1-11z"
+        fill="#F97316"
+      />
+      <path
+        className="screen"
+        d="M0-17 q4 5 3 9 q-1 3 -3 3 q-3 0 -3-4 q0-3 3-8z"
+        fill="#FDE047"
+      />
+      {/* humo */}
+      <g
+        className="steam"
+        fill="none"
+        stroke="rgba(148,163,184,.8)"
+        strokeWidth={1.6}
+        strokeLinecap="round"
+      >
+        <path d="M-2-30 q-4-4 0-8 q4-4 0-8" />
+        <path d="M4-33 q-3-3 0-6" />
       </g>
     </g>
   );
 });
 
+/** Pozo de piedra. */
 export const Printer = memo(function Printer({
   x,
   y,
-  pal,
 }: {
   x: number;
   y: number;
   pal: OfficePalette;
 }) {
-  const p = iso(x, y);
+  const p = iso(x + 0.5, y + 0.4);
   return (
-    <g>
-      <IsoBox
-        x={x}
-        y={y}
-        w={1.1}
-        d={0.9}
-        h={16}
-        pal={pal}
+    <g transform={`translate(${p.x},${p.y})`}>
+      <ellipse
+        cx={0}
+        cy={3}
+        rx={20}
+        ry={8}
+        fill={shadow}
       />
-      <g transform={`translate(${p.x + 14},${p.y - 16})`}>
-        <rect
-          x={-13}
-          y={-12}
-          width={26}
-          height={12}
-          rx={2}
-          fill={ART.printer}
-        />
-        <rect
-          x={-9}
-          y={-16}
-          width={18}
-          height={5}
-          fill={ART.paper}
-        />
-        <circle
-          cx={9}
-          cy={-6}
-          r={1.5}
-          fill={ART.led}
-        />
-      </g>
+      <path
+        d="M-15-12 v12 q15 8 30 0 v-12z"
+        fill={STONE.mid}
+      />
+      <path
+        d="M-15-6 q15 8 30 0 M-6-11 v13 M6-11 v13"
+        stroke={STONE.dark}
+        strokeWidth={1.1}
+        fill="none"
+      />
+      <ellipse
+        cx={0}
+        cy={-12}
+        rx={15}
+        ry={6}
+        fill={STONE.light}
+      />
+      <ellipse
+        cx={0}
+        cy={-12}
+        rx={10}
+        ry={3.8}
+        fill="#0EA5E9"
+        opacity={0.75}
+      />
+      {/* techito */}
+      <path
+        d="M-13-13 v-20 M13-13 v-20"
+        stroke={WOOD.bark}
+        strokeWidth={2.6}
+        strokeLinecap="round"
+      />
+      <path
+        d="M-19-31 L0-44 L19-31z"
+        fill={WOOD.barkDark}
+      />
+      <path
+        d="M0-44 L19-31 L8-31z"
+        fill="rgba(255,255,255,.12)"
+      />
     </g>
   );
 });
