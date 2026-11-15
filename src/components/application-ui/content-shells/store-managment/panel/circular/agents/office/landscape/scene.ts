@@ -28,6 +28,8 @@ export const SCENE = {
     baseLight: '#3A3357',
     roof: '#9F1239',
     gold: '#F5C84B',
+    // valle bajo la isla: pradera al atardecer que se apaga hacia abajo
+    field: ['#5B8A5C', '#3B3566'],
   },
   dark: {
     sky: ['#05040F', '#1E1B4B', '#5B21B6', '#9D4EDD'],
@@ -40,6 +42,7 @@ export const SCENE = {
     baseLight: '#211B33',
     roof: '#6B0F2A',
     gold: '#E0B040',
+    field: ['#1F3B2B', '#0D0B1F'],
   },
 };
 

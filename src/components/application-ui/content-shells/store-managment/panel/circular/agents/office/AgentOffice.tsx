@@ -115,7 +115,13 @@ function AgentOffice({
         <Typography
           variant="subtitle2"
           fontWeight={800}
-          sx={{ color: 'common.white', textShadow: '0 1px 4px rgba(0,0,0,.55)' }}
+          sx={{
+            color: 'common.white',
+            bgcolor: 'rgba(17,12,40,.62)',
+            px: 1.25,
+            py: 0.25,
+            borderRadius: 999,
+          }}
         >
           ♣ La guarida de los Toros Negros
         </Typography>

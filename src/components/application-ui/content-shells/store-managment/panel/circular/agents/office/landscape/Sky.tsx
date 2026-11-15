@@ -3,6 +3,8 @@
 import { COLS, iso, ROWS } from '../geometry';
 import { STARS, type Colors } from './scene';
 
+const WIDE = 2000;
+
 /** Cielo del atardecer, estrellas, luna, montañas y el castillo real. */
 export default function Sky({ c, dark }: { c: Colors; dark: boolean }) {
   const o = iso(0, 0);
@@ -11,12 +13,14 @@ export default function Sky({ c, dark }: { c: Colors; dark: boolean }) {
   return (
     <>
       <defs>
+        {/* En coordenadas del dibujo: el degradado no cambia aunque el rect se estire. */}
         <linearGradient
           id="sky"
+          gradientUnits="userSpaceOnUse"
           x1="0"
-          y1="0"
+          y1={-140}
           x2="0"
-          y2="1"
+          y2={l.y}
         >
           <stop
             offset="0"
@@ -35,6 +39,23 @@ export default function Sky({ c, dark }: { c: Colors; dark: boolean }) {
             stopColor={c.sky[3]}
           />
         </linearGradient>
+        <linearGradient
+          id="field"
+          gradientUnits="userSpaceOnUse"
+          x1="0"
+          y1={o.y + 100}
+          x2="0"
+          y2={l.y + 220}
+        >
+          <stop
+            offset="0"
+            stopColor={c.field[0]}
+          />
+          <stop
+            offset="1"
+            stopColor={c.field[1]}
+          />
+        </linearGradient>
         <radialGradient id="moonGlow">
           <stop
             offset="0"
@@ -49,14 +70,21 @@ export default function Sky({ c, dark }: { c: Colors; dark: boolean }) {
         </radialGradient>
       </defs>
 
-      {/* Cielo del atardecer */}
+      {/* Cielo y valle: más anchos que el dibujo para tapar las franjas cuando la tarjeta es
+          más ancha; los bordes redondeados los pone la tarjeta (overflow hidden). */}
       <rect
-        x={l.x - 30}
+        x={-WIDE}
         y={-140}
-        width={r.x - l.x + 60}
+        width={WIDE * 2}
         height={140 + l.y}
         fill="url(#sky)"
-        rx={18}
+      />
+      <rect
+        x={-WIDE}
+        y={o.y + 100}
+        width={WIDE * 2}
+        height={WIDE}
+        fill="url(#field)"
       />
       {STARS.map(([sx, sy, sr], i) => (
         <circle
@@ -91,11 +119,14 @@ export default function Sky({ c, dark }: { c: Colors; dark: boolean }) {
       />
       {/* montañas lejanas */}
       <path
-        d={`M${l.x - 30} ${o.y + 30} L${l.x + 70} -62 L${l.x + 150} ${o.y - 10} L${o.x - 40} -96 L${
-          o.x + 70
-        } ${o.y - 20} L${o.x + 170} -74 L${r.x - 40} ${o.y + 10} L${r.x + 30} -40 L${r.x + 30} ${
-          r.y + 40
-        } L${l.x - 30} ${l.y}z`}
+        // Sigue hasta los bordes (±WIDE) con laderas suaves: sin cortes cuando la tarjeta es ancha.
+        d={`M${-WIDE} ${o.y + 40} L${l.x - 120} ${o.y + 20} L${l.x - 30} ${o.y + 30} L${
+          l.x + 70
+        } -62 L${l.x + 150} ${o.y - 10} L${o.x - 40} -96 L${o.x + 70} ${o.y - 20} L${
+          o.x + 170
+        } -74 L${r.x - 40} ${o.y + 10} L${r.x + 30} -40 L${r.x + 130} ${o.y + 10} L${WIDE} ${
+          o.y + 40
+        } L${WIDE} ${r.y + 40} L${-WIDE} ${r.y + 40}z`}
         fill={c.far}
       />
       {/* castillo real, lejos, sobre la cima */}
