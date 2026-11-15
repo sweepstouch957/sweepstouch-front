@@ -1,148 +1,64 @@
-'use client';
-
-import { useEffect, useRef, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+/**
+ * Demo público (link que se comparte). Se arma en el servidor —el equivalente de
+ * getServerSideProps en App Router—: llega con el contenido listo (sin "Cargando demo…") y con
+ * título propio para la vista previa del link. La visita se cuenta en el navegador.
+ */
 import { demoService, type DemoDetail } from '@/services/demo.service';
+import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
+import { cache } from 'react';
+import { DemoFailed, DemoGenerating, DemoNotFound } from './demo-screens';
+import { TrackView } from './track-view';
 
-export default function DemoViewPage() {
-  const { id } = useParams<{ id: string }>();
-  const router = useRouter();
-  const [demo, setDemo] = useState<DemoDetail | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const tracked = useRef(false);
+type PageProps = { params: Promise<{ id: string }> };
 
-  useEffect(() => {
-    if (!id) return;
-    demoService
-      .getPublic(id)
-      .then((d) => {
-        if (d.pinned) {
-          router.replace('/demo');
-          return;
-        }
-        setDemo(d);
-        if (!tracked.current) {
-          tracked.current = true;
-          demoService.trackView(id);
-        }
-      })
-      .catch((e) => setError(e.message ?? 'Error al cargar el demo'));
-  }, [id, router]);
-
-  if (error) {
-    return (
-      <div
-        style={{
-          width: '100%',
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontFamily: 'system-ui, sans-serif',
-          background: '#f8f9fa',
-          flexDirection: 'column',
-          gap: 12,
-        }}
-      >
-        <p style={{ fontSize: 48 }}>🔗</p>
-        <p style={{ fontWeight: 700, fontSize: 18, color: '#404040' }}>Demo no encontrado</p>
-        <p style={{ color: '#999', fontSize: 14 }}>{error}</p>
-      </div>
-    );
+// Una sola llamada por request aunque la usen generateMetadata y la página.
+const loadDemo = cache(async (id: string): Promise<DemoDetail | { error: string }> => {
+  try {
+    return await demoService.getPublic(id);
+  } catch (e: any) {
+    return { error: e?.message ?? 'Error al cargar el demo' };
   }
+});
 
-  if (!demo) {
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const demo = await loadDemo((await params).id);
+  return 'error' in demo ? { title: 'Demo no encontrado' } : { title: demo.name };
+}
+
+export default async function DemoViewPage({ params }: PageProps) {
+  const { id } = await params;
+  const demo = await loadDemo(id);
+
+  if ('error' in demo) return <DemoNotFound message={demo.error} />;
+  if (demo.pinned) redirect('/demo');
+
+  const track = <TrackView id={id} />;
+  if (demo.status === 'generating')
     return (
-      <div
-        style={{
-          width: '100%',
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexDirection: 'column',
-          gap: 16,
-          fontFamily: 'system-ui, sans-serif',
-          background: '#fff',
-        }}
-      >
-        <div
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: '50%',
-            border: '3px solid #f0f0f0',
-            borderTopColor: '#ef0f82',
-            animation: 'spin 0.8s linear infinite',
-          }}
-        />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        <p style={{ color: '#999', fontSize: 14 }}>Cargando demo…</p>
-      </div>
+      <>
+        {track}
+        <DemoGenerating name={demo.name} />
+      </>
     );
-  }
-
-  if (demo.status === 'generating') {
+  if (demo.status === 'error')
     return (
-      <div
-        style={{
-          width: '100%',
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexDirection: 'column',
-          gap: 16,
-          fontFamily: 'system-ui, sans-serif',
-          background: '#fff',
-        }}
-      >
-        <div
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: '50%',
-            border: '3px solid #f0f0f0',
-            borderTopColor: '#ef0f82',
-            animation: 'spin 0.8s linear infinite',
-          }}
-        />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        <p style={{ fontWeight: 700, color: '#404040' }}>Generando demo "{demo.name}"…</p>
-        <p style={{ color: '#999', fontSize: 13 }}>Esto puede tardar unos segundos.</p>
-      </div>
+      <>
+        {track}
+        <DemoFailed message={demo.errorMsg} />
+      </>
     );
-  }
 
-  if (demo.status === 'error') {
-    return (
-      <div
-        style={{
-          width: '100%',
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexDirection: 'column',
-          gap: 12,
-          fontFamily: 'system-ui, sans-serif',
-          background: '#f8f9fa',
-        }}
-      >
-        <p style={{ fontSize: 48 }}>⚠️</p>
-        <p style={{ fontWeight: 700, fontSize: 18, color: '#404040' }}>Error al generar el demo</p>
-        <p style={{ color: '#999', fontSize: 13 }}>{demo.errorMsg ?? 'Error desconocido'}</p>
-      </div>
-    );
-  }
-
-  // Ready — render generated HTML in full-screen iframe
+  // Listo: el HTML generado en un iframe a pantalla completa.
   return (
-    <iframe
-      srcDoc={demo.html ?? ''}
-      style={{ position: 'fixed', inset: 0, width: '100%', height: '100%', border: 'none' }}
-      title={demo.name}
-      sandbox="allow-scripts allow-forms allow-popups allow-same-origin allow-top-navigation-by-user-activation"
-    />
+    <>
+      {track}
+      <iframe
+        srcDoc={demo.html ?? ''}
+        style={{ position: 'fixed', inset: 0, width: '100%', height: '100%', border: 'none' }}
+        title={demo.name}
+        sandbox="allow-scripts allow-forms allow-popups allow-same-origin allow-top-navigation-by-user-activation"
+      />
+    </>
   );
 }
