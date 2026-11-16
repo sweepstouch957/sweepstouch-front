@@ -1,6 +1,9 @@
 'use client';
-import { textHas } from '@/utils/text';
 
+import { BrandCreationModal } from '@/components/admin/stores/BrandCreationModal';
+import { useBrands } from '@/hooks/fetching/brands/useBrands';
+import { Brand } from '@/services/brand.service';
+import { textHas } from '@/utils/text';
 import { Edit, FileDownloadOutlined, SearchTwoTone } from '@mui/icons-material';
 import {
   Avatar,
@@ -8,6 +11,7 @@ import {
   Button,
   Card,
   Chip,
+  CircularProgress,
   IconButton,
   InputAdornment,
   Table,
@@ -19,22 +23,24 @@ import {
   TextField,
   ToggleButton,
   ToggleButtonGroup,
-  Typography } from '@mui/material';
+  Typography,
+} from '@mui/material';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useBrands } from '@/hooks/fetching/brands/useBrands';
-import { Brand } from '@/services/brand.service';
-import { BrandCreationModal } from '@/components/admin/stores/BrandCreationModal';
-import { CircularProgress } from '@mui/material';
-import { exportBrandsExcel } from './exportBrandsExcel';
+
+// exportBrandsExcel (xlsx-js-style, ~300 KB gzip) se carga al apretar Exportar.
 
 type StatusFilter = 'all' | 'active' | 'inactive';
-const STATUS_LABEL: Record<StatusFilter, string> = { all: 'Todas', active: 'Activas', inactive: 'Inactivas' };
+const STATUS_LABEL: Record<StatusFilter, string> = {
+  all: 'Todas',
+  active: 'Activas',
+  inactive: 'Inactivas',
+};
 
 export default function BrandListing() {
   const { t } = useTranslation();
   const { data: brandsRes, isLoading } = useBrands();
-  const brands: Brand[] = Array.isArray(brandsRes) ? brandsRes : (brandsRes?.data || []);
+  const brands: Brand[] = Array.isArray(brandsRes) ? brandsRes : brandsRes?.data || [];
 
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -47,7 +53,7 @@ export default function BrandListing() {
     return brands.filter((b) => {
       if (status === 'active' && b.active === false) return false;
       if (status === 'inactive' && b.active !== false) return false;
-      return !q || textHas((b.name || ''), q) || textHas((b.slug || ''), q);
+      return !q || textHas(b.name || '', q) || textHas(b.slug || '', q);
     });
   }, [brands, search, status]);
 
@@ -58,7 +64,12 @@ export default function BrandListing() {
 
   if (isLoading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" height="300px">
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        height="300px"
+      >
         <CircularProgress size={48} />
       </Box>
     );
@@ -88,11 +99,16 @@ export default function BrandListing() {
               <InputAdornment position="start">
                 <SearchTwoTone />
               </InputAdornment>
-            )
+            ),
           }}
           sx={{ maxWidth: 420, flex: 1 }}
         />
-        <Box display="flex" alignItems="center" gap={1.5} flexWrap="wrap">
+        <Box
+          display="flex"
+          alignItems="center"
+          gap={1.5}
+          flexWrap="wrap"
+        >
           <ToggleButtonGroup
             size="small"
             exclusive
@@ -113,7 +129,12 @@ export default function BrandListing() {
             size="small"
             startIcon={<FileDownloadOutlined />}
             disabled={filtered.length === 0}
-            onClick={() => exportBrandsExcel(filtered, STATUS_LABEL[status])}
+            onClick={async () =>
+              (await import('./exportBrandsExcel')).exportBrandsExcel(
+                filtered,
+                STATUS_LABEL[status]
+              )
+            }
           >
             Exportar Excel ({filtered.length})
           </Button>
@@ -134,7 +155,10 @@ export default function BrandListing() {
           </TableHead>
           <TableBody>
             {paged.map((brand) => (
-              <TableRow hover key={brand.id || brand._id}>
+              <TableRow
+                hover
+                key={brand.id || brand._id}
+              >
                 <TableCell>
                   <Avatar
                     variant="rounded"
@@ -143,27 +167,49 @@ export default function BrandListing() {
                   />
                 </TableCell>
                 <TableCell>
-                  <Typography variant="subtitle1" fontWeight={600}>
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight={600}
+                  >
                     {brand.name}
                   </Typography>
                 </TableCell>
                 <TableCell>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                  >
                     {brand.slug}
                   </Typography>
                 </TableCell>
                 <TableCell>
                   {brand.active !== false ? (
-                    <Chip label="Activo" color="success" size="small" />
+                    <Chip
+                      label="Activo"
+                      color="success"
+                      size="small"
+                    />
                   ) : (
-                    <Chip label="Inactivo" color="error" size="small" />
+                    <Chip
+                      label="Inactivo"
+                      color="error"
+                      size="small"
+                    />
                   )}
                 </TableCell>
                 <TableCell align="center">
-                  <Typography variant="body2" fontWeight={600}>
+                  <Typography
+                    variant="body2"
+                    fontWeight={600}
+                  >
                     {brand.storesActive ?? 0}
-                    <Typography component="span" variant="body2" color="text.secondary">
-                      {' '}/ {brand.storesTotal ?? 0}
+                    <Typography
+                      component="span"
+                      variant="body2"
+                      color="text.secondary"
+                    >
+                      {' '}
+                      / {brand.storesTotal ?? 0}
                     </Typography>
                   </Typography>
                 </TableCell>
@@ -181,10 +227,13 @@ export default function BrandListing() {
             {paged.length === 0 && (
               <TableRow>
                 <TableCell colSpan={6}>
-                  <Box py={6} display="flex" justifyContent="center" alignItems="center">
-                    <Typography color="text.secondary">
-                      {t('No results')}
-                    </Typography>
+                  <Box
+                    py={6}
+                    display="flex"
+                    justifyContent="center"
+                    alignItems="center"
+                  >
+                    <Typography color="text.secondary">{t('No results')}</Typography>
                   </Box>
                 </TableCell>
               </TableRow>
@@ -193,7 +242,10 @@ export default function BrandListing() {
         </Table>
       </Box>
 
-      <Box display="flex" justifyContent="flex-end">
+      <Box
+        display="flex"
+        justifyContent="flex-end"
+      >
         <TablePagination
           component="div"
           count={filtered.length}

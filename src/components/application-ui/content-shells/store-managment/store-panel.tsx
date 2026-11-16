@@ -5,18 +5,25 @@ import { useStoreManagementPage } from '@/hooks/pages/useStoreManagementPage';
 import { DEFAULT_INFOBIP_SENDER } from '@/services/store.service';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
 import { Box, Divider, Theme, useMediaQuery, useTheme } from '@mui/material';
+import dynamic from 'next/dynamic';
 import { useRef } from 'react';
 import { ButtonIcon } from 'src/components/base/styles/button-icon';
 import { InactiveStoreDialog } from './InactiveStoreDialog';
+import { StoreSidebar } from './store-sidebar';
 import { StoreContentRouter } from './StoreContentRouter';
 import { StoreManagementHeader } from './StoreManagementHeader';
-import QuickCampaignDialog from './panel/campaigns/QuickCampaignDialog';
-import { StoreSidebar } from './store-sidebar';
+
+// Diálogo de campaña rápida (~880 líneas): se baja la primera vez que se abre.
+const QuickCampaignDialog = dynamic(() => import('./panel/campaigns/QuickCampaignDialog'), {
+  ssr: false,
+});
 
 const StoreManagementPage = () => {
   const theme = useTheme();
   const lgUp = useMediaQuery((theme: Theme) => theme.breakpoints.up('lg'));
   const pageRef = useRef<HTMLDivElement | null>(null);
+  // Montado desde la primera apertura: al cerrar y reabrir conserva lo que tenía.
+  const quickMounted = useRef(false);
 
   const {
     storeId,
@@ -37,6 +44,7 @@ const StoreManagementPage = () => {
     handleMMSNavigate,
     handleQuickOpen,
   } = useStoreManagementPage();
+  if (quickOpen) quickMounted.current = true;
   // Mismo query que la pestaña de equipos: el número son las tablets reales de
   // Kiosk Manager, no la lista manual store.equipment (casi siempre vacía → "0").
   const { data: kioskDevices } = useKioskDevices(store?.id || '');
@@ -59,7 +67,8 @@ const StoreManagementPage = () => {
         accessCode={store?.accessCode}
         counts={{
           customers: store?.customerCount,
-          equipment: kioskDevices?.length || store?.equipment?.length || store?.equipmentTotal || undefined,
+          equipment:
+            kioskDevices?.length || store?.equipment?.length || store?.equipmentTotal || undefined,
         }}
       />
 
@@ -123,7 +132,7 @@ const StoreManagementPage = () => {
           onClose={() => setOpenInactiveModal(false)}
         />
 
-        {store && (
+        {store && (quickOpen || quickMounted.current) && (
           <QuickCampaignDialog
             open={quickOpen}
             onClose={() => setQuickOpen(false)}

@@ -1,13 +1,12 @@
 // ================================================
 // hooks/useShiftsTable.ts
 // ================================================
-"use client";
+'use client';
 
-import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { endOfDay, startOfDay, format } from "date-fns";
-import * as XLSX from "xlsx";
-import { shiftService } from "@/services/shift.service";
+import { shiftService } from '@/services/shift.service';
+import { useQuery } from '@tanstack/react-query';
+import { endOfDay, format, startOfDay } from 'date-fns';
+import { useMemo, useState } from 'react';
 
 // ===== Types shared with the table =====
 export interface Sweepstake {
@@ -47,8 +46,8 @@ export type ShiftRow = {
 };
 
 export type DateRangeValue = { startDate: Date | null; endDate: Date | null };
-export const STATUS_OPTIONS = ["available", "assigned", "active", "completed"] as const;
-export type StatusFilter = "all" | (typeof STATUS_OPTIONS)[number];
+export const STATUS_OPTIONS = ['available', 'assigned', 'active', 'completed'] as const;
+export type StatusFilter = 'all' | (typeof STATUS_OPTIONS)[number];
 
 export type UseShiftsTableOptions = {
   defaultRowsPerPage?: number;
@@ -95,7 +94,7 @@ export type UseShiftsTableResult = {
 };
 
 const fmt2 = (n: number) => (Number.isFinite(n) ? Number(n.toFixed(2)) : 0);
-const safeNum = (n: any) => (typeof n === "number" && isFinite(n) ? n : 0);
+const safeNum = (n: any) => (typeof n === 'number' && isFinite(n) ? n : 0);
 const getHours = (s?: string, e?: string) => {
   if (!s || !e) return 4;
   const diff = new Date(e).getTime() - new Date(s).getTime();
@@ -105,13 +104,13 @@ const getHours = (s?: string, e?: string) => {
 const getPromoterName = (row: ShiftRow) => {
   const r = row.requestedBy || {};
   const p = row.promoterInfo || {};
-  const name = [r.firstName ?? p.firstName ?? "", r.lastName ?? p.lastName ?? ""]
-    .join(" ")
-    .replace(/\s+/g, " ")
+  const name = [r.firstName ?? p.firstName ?? '', r.lastName ?? p.lastName ?? '']
+    .join(' ')
+    .replace(/\s+/g, ' ')
     .trim();
-  return name || "Sin asignar";
+  return name || 'Sin asignar';
 };
-const getPromoterEmail = (row: ShiftRow) => row.requestedBy?.email || row.promoterInfo?.email || "";
+const getPromoterEmail = (row: ShiftRow) => row.requestedBy?.email || row.promoterInfo?.email || '';
 const autoFit = (data: any[]) => {
   const cols = Object.keys(data[0] ?? {}).map(() => ({ wch: 10 }));
   data.forEach((row) => {
@@ -126,19 +125,19 @@ const autoFit = (data: any[]) => {
 // Pure helper — formats a date range, allocated once at module scope
 const formatRange = (value: DateRangeValue) => {
   const { startDate, endDate } = value;
-  if (!startDate && !endDate) return "";
-  if (startDate && !endDate) return `${format(startDate, "MM/dd/yyyy")} –`;
-  if (!startDate && endDate) return `– ${format(endDate, "MM/dd/yyyy")}`;
-  return `${format(startDate!, "MM/dd/yyyy")} – ${format(endDate!, "MM/dd/yyyy")}`;
+  if (!startDate && !endDate) return '';
+  if (startDate && !endDate) return `${format(startDate, 'MM/dd/yyyy')} –`;
+  if (!startDate && endDate) return `– ${format(endDate, 'MM/dd/yyyy')}`;
+  return `${format(startDate!, 'MM/dd/yyyy')} – ${format(endDate!, 'MM/dd/yyyy')}`;
 };
 
 export function useShiftsTable(options: UseShiftsTableOptions = {}): UseShiftsTableResult {
   const pageSizeOptions = options.pageSizeOptions ?? [10, 12, 20, 30, 50];
-  const [status, setStatus] = useState<StatusFilter>("all");
+  const [status, setStatus] = useState<StatusFilter>('all');
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState<number>(options.defaultRowsPerPage ?? 12);
   const [dateRange, setDateRange] = useState<DateRangeValue>({ startDate: null, endDate: null });
-  const [promoterId, setPromoterIdState] = useState<string>("");
+  const [promoterId, setPromoterIdState] = useState<string>('');
 
   // derived dates
   const startISO = useMemo(
@@ -152,14 +151,14 @@ export function useShiftsTable(options: UseShiftsTableOptions = {}): UseShiftsTa
 
   // fetch
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: ["shifts", page, rowsPerPage, startISO, endISO, status, promoterId],
+    queryKey: ['shifts', page, rowsPerPage, startISO, endISO, status, promoterId],
     queryFn: () =>
       shiftService.getAllShifts({
         page,
         limit: rowsPerPage,
         startTime: startISO,
         endTime: endISO,
-        status: status === "all" ? undefined : status,
+        status: status === 'all' ? undefined : status,
         promoterId: promoterId || undefined,
       }),
   });
@@ -171,9 +170,9 @@ export function useShiftsTable(options: UseShiftsTableOptions = {}): UseShiftsTa
   // currency
   const usd = useMemo(
     () =>
-      new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
+      new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
         maximumFractionDigits: 2,
       }),
     []
@@ -205,7 +204,8 @@ export function useShiftsTable(options: UseShiftsTableOptions = {}): UseShiftsTa
   };
 
   // helpers
-  const buildExcelAndDownload = (rows: ShiftRow[] = shifts) => {
+  // xlsx se baja al exportar, no al abrir la página (~136 KB gzip).
+  const buildExcelAndDownload = async (rows: ShiftRow[] = shifts) => {
     const groups = new Map<
       string,
       {
@@ -253,11 +253,11 @@ export function useShiftsTable(options: UseShiftsTableOptions = {}): UseShiftsTa
       Promotora: g.name,
       Email: g.email,
       Turnos: g.totals.shifts,
-      "Horas totales": fmt2(g.totals.hours),
-      "Ganancias totales ($)": fmt2(g.totals.earnings),
-      "Números totales": g.totals.totalNums,
-      "Números nuevos": g.totals.newNums,
-      "Números existentes": g.totals.existingNums,
+      'Horas totales': fmt2(g.totals.hours),
+      'Ganancias totales ($)': fmt2(g.totals.earnings),
+      'Números totales': g.totals.totalNums,
+      'Números nuevos': g.totals.newNums,
+      'Números existentes': g.totals.existingNums,
     }));
 
     const detalleRows = Array.from(groups.values())
@@ -267,18 +267,18 @@ export function useShiftsTable(options: UseShiftsTableOptions = {}): UseShiftsTa
           return {
             Promotora: g.name,
             Email: g.email,
-            Fecha: r.date ? new Date(r.date).toLocaleDateString() : "",
-            Inicio: r.startTime ? new Date(r.startTime).toLocaleTimeString() : "",
-            Fin: r.endTime ? new Date(r.endTime).toLocaleTimeString() : "",
-            "Horas (turno)": hours,
-            Tienda: r.storeInfo?.name ?? "",
-            Dirección: r.storeInfo?.address ?? "",
-            ZIP: r.storeInfo?.zipCode ?? "",
-            Estado: r.status ?? "",
-            "Números totales": safeNum(r.totalParticipations),
-            "Números nuevos": safeNum(r.newParticipations),
-            "Números existentes": safeNum(r.existingParticipations),
-            "Ganancia turno ($)": fmt2(safeNum(r.totalEarnings)),
+            Fecha: r.date ? new Date(r.date).toLocaleDateString() : '',
+            Inicio: r.startTime ? new Date(r.startTime).toLocaleTimeString() : '',
+            Fin: r.endTime ? new Date(r.endTime).toLocaleTimeString() : '',
+            'Horas (turno)': hours,
+            Tienda: r.storeInfo?.name ?? '',
+            Dirección: r.storeInfo?.address ?? '',
+            ZIP: r.storeInfo?.zipCode ?? '',
+            Estado: r.status ?? '',
+            'Números totales': safeNum(r.totalParticipations),
+            'Números nuevos': safeNum(r.newParticipations),
+            'Números existentes': safeNum(r.existingParticipations),
+            'Ganancia turno ($)': fmt2(safeNum(r.totalEarnings)),
           };
         })
       )
@@ -288,13 +288,14 @@ export function useShiftsTable(options: UseShiftsTableOptions = {}): UseShiftsTa
           : a.Promotora.localeCompare(b.Promotora)
       );
 
+    const XLSX = await import('xlsx');
     const wb = XLSX.utils.book_new();
     const wsResumen = XLSX.utils.json_to_sheet(resumenRows);
     const wsDetalle = XLSX.utils.json_to_sheet(detalleRows);
-    if (resumenRows.length) wsResumen["!cols"] = autoFit(resumenRows);
-    if (detalleRows.length) wsDetalle["!cols"] = autoFit(detalleRows);
-    XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen por promotora");
-    XLSX.utils.book_append_sheet(wb, wsDetalle, "Detalle por turno");
+    if (resumenRows.length) wsResumen['!cols'] = autoFit(resumenRows);
+    if (detalleRows.length) wsDetalle['!cols'] = autoFit(detalleRows);
+    XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen por promotora');
+    XLSX.utils.book_append_sheet(wb, wsDetalle, 'Detalle por turno');
     const today = new Date().toISOString().slice(0, 10);
     XLSX.writeFile(wb, `turnos_${today}.xlsx`);
   };

@@ -14,7 +14,8 @@
     "format:write": "prettier --write \"**/*.{js,jsx,ts,tsx,mdx}\" --cache",
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,mdx}\" --cache",
     "doctor": "npx react-doctor@latest",
-    "test:domain": "node --experimental-strip-types --no-warnings --test src/components/application-ui/content-shells/store-managment/panel/circular/domain/domain.test.mjs"
+    "test:domain": "node --experimental-strip-types --no-warnings --test src/components/application-ui/content-shells/store-managment/panel/circular/domain/domain.test.mjs",
+    "test:perf": "node --experimental-strip-types --no-warnings --test src/libs/perf/monitor.test.mjs"
   },
   "dependencies": {
     "@emotion/cache": "11.11.0",
