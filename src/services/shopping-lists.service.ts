@@ -103,11 +103,38 @@ export interface PurchasesResponse {
 
 const BASE = '/tracking';
 
+export interface ListCustomer {
+  customerId: string;
+  name: string;
+  phone: string;
+  email: string;
+  inDatabase: boolean;
+  lists: number;
+  validated: number;
+  items: number;
+  points: number;
+  savings: number;
+  firstAt: string;
+  lastAt: string;
+  /** Lo que puso en sus listas, de lo más repetido a lo menos. */
+  products: { name: string; quantity: number; lists: number }[];
+}
+
 export interface ListsInsights {
-  topListed: { name: string; imageUrl?: string; price?: string; lists: number; quantity: number }[];
+  topListed: {
+    name: string;
+    imageUrl?: string;
+    price?: string;
+    lists: number;
+    quantity: number;
+    /** Clientes distintos que lo pusieron en alguna lista. */
+    customers?: number;
+  }[];
   listCustomers: number;
   avgItemsPerList: number;
   redeemed: { claims: number; points: number; customers: number };
+  /** Todos los clientes que armaron listas en la tienda. */
+  customers?: ListCustomer[];
 }
 
 export const shoppingListsService = {
@@ -219,6 +246,7 @@ export interface SurveyResults {
   recent: Array<{
     customerId: string;
     customerName: string;
+    customerPhone?: string;
     answers: Array<{ question: string; answer: string }>;
     pointsAwarded: number;
     createdAt: string;

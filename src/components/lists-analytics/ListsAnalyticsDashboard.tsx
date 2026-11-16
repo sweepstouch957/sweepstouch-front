@@ -10,6 +10,7 @@ import { shoppingListsQK, shoppingListsService } from '@/services/shopping-lists
 import {
   alpha,
   Box,
+  Button,
   Chip,
   LinearProgress,
   Paper,
@@ -27,6 +28,10 @@ import {
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
+import ListCustomersTable from './ListCustomersTable';
+import { displayName } from './people';
+
+const PREVIEW = 15;
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const money = (v: number) => usd.format(v || 0);
@@ -37,6 +42,9 @@ const cell = { py: 0.75, px: 1.25, whiteSpace: 'nowrap' } as const;
 export default function ListsAnalyticsDashboard({ storeSlug }: { storeSlug: string }) {
   const theme = useTheme();
   const [days, setDays] = useState(30);
+  const [allListed, setAllListed] = useState(false);
+  const [allBought, setAllBought] = useState(false);
+  const [allBuyers, setAllBuyers] = useState(false);
   const enabled = !!storeSlug;
 
   const summary = useQuery({
@@ -265,6 +273,9 @@ export default function ListsAnalyticsDashboard({ storeSlug }: { storeSlug: stri
         </Box>
       </Paper>
 
+      {/* Todos los clientes que armaron listas */}
+      <ListCustomersTable customers={ins?.customers ?? []} />
+
       {/* Compras por cliente */}
       <Paper
         variant="outlined"
@@ -317,7 +328,7 @@ export default function ListsAnalyticsDashboard({ storeSlug }: { storeSlug: stri
             </TableRow>
           </TableHead>
           <TableBody>
-            {(p?.customers ?? []).map((c) => (
+            {(allBuyers ? p?.customers ?? [] : (p?.customers ?? []).slice(0, PREVIEW)).map((c) => (
               <TableRow
                 key={c.customerId}
                 hover
@@ -327,7 +338,7 @@ export default function ListsAnalyticsDashboard({ storeSlug }: { storeSlug: stri
                     variant="body2"
                     fontWeight={600}
                   >
-                    {c.customerName || c.customerPhone || c.customerId}
+                    {displayName(c.customerName, c.customerPhone)}
                   </Typography>
                   {!c.inDatabase && (
                     <Chip
@@ -383,6 +394,15 @@ export default function ListsAnalyticsDashboard({ storeSlug }: { storeSlug: stri
             )}
           </TableBody>
         </Table>
+        {(p?.customers.length ?? 0) > PREVIEW && (
+          <Button
+            size="small"
+            onClick={() => setAllBuyers(!allBuyers)}
+            sx={{ mt: 1, textTransform: 'none', fontWeight: 700 }}
+          >
+            {allBuyers ? 'Ver menos' : `Ver todos (${p!.customers.length})`}
+          </Button>
+        )}
       </Paper>
 
       {/* Encuesta post-compra */}
@@ -495,7 +515,7 @@ export default function ListsAnalyticsDashboard({ storeSlug }: { storeSlug: stri
                       noWrap
                       fontWeight={600}
                     >
-                      {r.customerName || r.customerId} — {r.answers[0]?.answer || ''}
+                      {displayName(r.customerName, r.customerPhone)} — {r.answers[0]?.answer || ''}
                     </Typography>
                     <Typography
                       variant="caption"
@@ -630,6 +650,12 @@ export default function ListsAnalyticsDashboard({ storeSlug }: { storeSlug: stri
                   sx={cell}
                   align="right"
                 >
+                  Clientes
+                </TableCell>
+                <TableCell
+                  sx={cell}
+                  align="right"
+                >
                   Unidades
                 </TableCell>
                 <TableCell
@@ -641,7 +667,7 @@ export default function ListsAnalyticsDashboard({ storeSlug }: { storeSlug: stri
               </TableRow>
             </TableHead>
             <TableBody>
-              {ins!.topListed.map((t) => (
+              {(allListed ? ins!.topListed : ins!.topListed.slice(0, PREVIEW)).map((t) => (
                 <TableRow
                   key={t.name}
                   hover
@@ -685,6 +711,12 @@ export default function ListsAnalyticsDashboard({ storeSlug }: { storeSlug: stri
                     sx={cell}
                     align="right"
                   >
+                    {t.customers ?? '—'}
+                  </TableCell>
+                  <TableCell
+                    sx={cell}
+                    align="right"
+                  >
                     {t.quantity}
                   </TableCell>
                   <TableCell
@@ -697,6 +729,15 @@ export default function ListsAnalyticsDashboard({ storeSlug }: { storeSlug: stri
               ))}
             </TableBody>
           </Table>
+          {ins!.topListed.length > PREVIEW && (
+            <Button
+              size="small"
+              onClick={() => setAllListed(!allListed)}
+              sx={{ mt: 1, textTransform: 'none', fontWeight: 700 }}
+            >
+              {allListed ? 'Ver menos' : `Ver todos (${ins!.topListed.length})`}
+            </Button>
+          )}
         </Paper>
       )}
 
@@ -744,7 +785,7 @@ export default function ListsAnalyticsDashboard({ storeSlug }: { storeSlug: stri
               </TableRow>
             </TableHead>
             <TableBody>
-              {p!.topProducts.map((tp) => (
+              {(allBought ? p!.topProducts : p!.topProducts.slice(0, PREVIEW)).map((tp) => (
                 <TableRow
                   key={tp.name}
                   hover
@@ -785,6 +826,15 @@ export default function ListsAnalyticsDashboard({ storeSlug }: { storeSlug: stri
               ))}
             </TableBody>
           </Table>
+          {p!.topProducts.length > PREVIEW && (
+            <Button
+              size="small"
+              onClick={() => setAllBought(!allBought)}
+              sx={{ mt: 1, textTransform: 'none', fontWeight: 700 }}
+            >
+              {allBought ? 'Ver menos' : `Ver todos (${p!.topProducts.length})`}
+            </Button>
+          )}
         </Paper>
       )}
     </Box>
