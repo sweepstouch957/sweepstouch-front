@@ -4,11 +4,13 @@ import { useAuth } from '@/hooks/use-auth';
 import { sendChatMessage } from '@/services/ai.service';
 import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import CancelRounded from '@mui/icons-material/CancelRounded';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import FilterAltOffRoundedIcon from '@mui/icons-material/FilterAltOffRounded';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import LocalPhone from '@mui/icons-material/LocalPhone';
-import SmsRounded from '@mui/icons-material/SmsRounded';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
+import SmsRounded from '@mui/icons-material/SmsRounded';
 import TuneRoundedIcon from '@mui/icons-material/TuneRounded';
 import {
   alpha,
@@ -21,6 +23,7 @@ import {
   FormControlLabel,
   IconButton,
   InputAdornment,
+  LinearProgress,
   MenuItem,
   Paper,
   Select,
@@ -31,10 +34,9 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
-import debounce from 'lodash.debounce';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import type { Theme } from '@mui/material/styles';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 type DebtStatus = 'all' | 'ok' | 'min_low' | 'low' | 'mid' | 'high' | 'critical';
 type StoreStatusFilter = 'all' | 'active' | 'suspended' | 'cancelled';
@@ -80,15 +82,20 @@ function useAISuggestion(
           userRole: user?.role ?? 'admin',
           signal: abortRef.current.signal,
         },
-        (text) => { fullText += text; },
+        (text) => {
+          fullText += text;
+        },
         () => {
-          const cleaned = fullText.trim().replace(/["""''*#\n]/g, '').trim();
+          const cleaned = fullText
+            .trim()
+            .replace(/["""''*#\n]/g, '')
+            .trim();
           if (cleaned && cleaned.toLowerCase() !== query.toLowerCase() && cleaned.length < 60) {
             setSuggestion(cleaned);
           }
           setThinking(false);
         },
-        () => setThinking(false),
+        () => setThinking(false)
       );
     }, 1400);
 
@@ -101,15 +108,13 @@ function useAISuggestion(
   return { suggestion, thinking, clear: () => setSuggestion(null) };
 }
 
-const debtChipConfigs = (
-  theme: Theme
-): { value: DebtStatus; label: string; color: string }[] => [
-  { value: 'all',      label: 'Todos',    color: '' },
-  { value: 'ok',       label: 'OK',       color: theme.palette.success.main },
-  { value: 'min_low',  label: 'Min low',  color: theme.palette.text.secondary },
-  { value: 'low',      label: 'Low',      color: theme.palette.warning.main },
-  { value: 'mid',      label: 'Mid',      color: theme.palette.warning.dark },
-  { value: 'high',     label: 'High',     color: theme.palette.error.main },
+const debtChipConfigs = (theme: Theme): { value: DebtStatus; label: string; color: string }[] => [
+  { value: 'all', label: 'Todos', color: '' },
+  { value: 'ok', label: 'OK', color: theme.palette.success.main },
+  { value: 'min_low', label: 'Min low', color: theme.palette.text.secondary },
+  { value: 'low', label: 'Low', color: theme.palette.warning.main },
+  { value: 'mid', label: 'Mid', color: theme.palette.warning.dark },
+  { value: 'high', label: 'High', color: theme.palette.error.main },
   { value: 'critical', label: 'Critical', color: theme.palette.error.dark },
 ];
 
@@ -132,6 +137,9 @@ export default function StoreFilters({
   onMinDebtChange,
   onMaxDebtChange,
   onOpenCommandPalette,
+  otherStatusMatches = 0,
+  fetching = false,
+  onClearAll,
 }: {
   search: string;
   status: StoreStatusFilter;
@@ -151,6 +159,12 @@ export default function StoreFilters({
   onMinDebtChange: (v: string) => void;
   onMaxDebtChange: (v: string) => void;
   onOpenCommandPalette?: () => void;
+  /** Coincidencias de la búsqueda que el filtro de estado deja afuera. */
+  otherStatusMatches?: number;
+  /** Se está actualizando la lista (la tabla muestra lo anterior mientras tanto). */
+  fetching?: boolean;
+  /** Vuelve todo a como está al entrar. */
+  onClearAll?: () => void;
 }) {
   const theme = useTheme();
   const { t } = useTranslation();
@@ -161,50 +175,99 @@ export default function StoreFilters({
   const isMac = typeof navigator !== 'undefined' && /mac/i.test(navigator.platform);
   const kbdHint = isMac ? '⌘K' : 'Ctrl K';
 
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [searchInput, setSearchInput] = useState(searchProp);
+  // Si la búsqueda cambia desde afuera (limpiar filtros, link con ?q=), el campo la sigue.
+  useEffect(() => setSearchInput(searchProp), [searchProp]);
 
-  const debouncedUpdate = useMemo(
-    () =>
-      debounce((v: string) => {
-        handleSearchChange(v);
-      }, 200),
-    [handleSearchChange]
-  );
-
-  useEffect(() => () => debouncedUpdate.cancel(), [debouncedUpdate]);
-
+  // El hook ya espera entre teclas: acá NO se vuelve a esperar (antes eran 200 + 150 ms).
   const onSearchInput = useCallback(
     (v: string) => {
       setSearchInput(v);
-      debouncedUpdate(v);
+      handleSearchChange(v);
     },
-    [debouncedUpdate]
+    [handleSearchChange]
   );
 
   const hasResults = total > 0;
 
-  const { suggestion: aiSuggestion, thinking: aiThinking, clear: clearAI } = useAISuggestion(
-    searchInput,
-    hasResults,
-    user
-  );
+  const {
+    suggestion: aiSuggestion,
+    thinking: aiThinking,
+    clear: clearAI,
+  } = useAISuggestion(searchInput, hasResults, user);
 
-  const hasAdvancedFilters =
-    !!audienceLt || debtStatus !== 'all' || !!minDebt || !!maxDebt;
+  const hasAdvancedFilters = !!audienceLt || debtStatus !== 'all' || !!minDebt || !!maxDebt;
+  // Si se entra con filtros avanzados en la URL, el panel arranca abierto.
+  const [showAdvanced, setShowAdvanced] = useState(hasAdvancedFilters);
 
-  const hasAnyFilter =
-    !!searchProp ||
-    status !== 'all' ||
-    paymentMethod !== 'all' ||
-    circularss !== 'all' ||
-    hasAdvancedFilters;
+  // Filtros distintos de cómo arranca la página ("activas", sin búsqueda), cada uno con
+  // cómo quitarlo: chips para ver de un vistazo qué está filtrando.
+  const payLabel = (v: string) =>
+    ({ central_billing: 'Central billing', quickbooks: 'QuickBooks', ach: 'ACH' })[v] ??
+    v.charAt(0).toUpperCase() + v.slice(1);
+  const debtLabel = debtChipConfigs(theme).find((c) => c.value === debtStatus)?.label ?? debtStatus;
+  const activeFilters: { key: string; label: string; clear: () => void }[] = [
+    ...(searchProp ? [{ key: 'q', label: `"${searchProp}"`, clear: () => onSearchInput('') }] : []),
+    ...(status !== 'active'
+      ? [
+          {
+            key: 'status',
+            label: status === 'all' ? 'Todos los estados' : STATUS_LABELS[status],
+            clear: () => onStatusChange('active'),
+          },
+        ]
+      : []),
+    ...(paymentMethod !== 'all'
+      ? [
+          {
+            key: 'pay',
+            label: `Pago: ${payLabel(paymentMethod)}`,
+            clear: () => onPaymentMethodChange('all'),
+          },
+        ]
+      : []),
+    ...(circularss === 'true'
+      ? [{ key: 'circ', label: 'Circularss', clear: () => onCircularssChange('all') }]
+      : []),
+    ...(debtStatus !== 'all'
+      ? [{ key: 'debt', label: `Deuda: ${debtLabel}`, clear: () => onDebtStatusChange('all') }]
+      : []),
+    ...(audienceLt
+      ? [
+          {
+            key: 'aud',
+            label: `Audiencia < ${Number(audienceLt).toLocaleString()}`,
+            clear: () => onAudienceLtChange(''),
+          },
+        ]
+      : []),
+    ...(minDebt
+      ? [
+          {
+            key: 'min',
+            label: `Deuda > $${Number(minDebt).toLocaleString()}`,
+            clear: () => onMinDebtChange(''),
+          },
+        ]
+      : []),
+    ...(maxDebt
+      ? [
+          {
+            key: 'max',
+            label: `Deuda < $${Number(maxDebt).toLocaleString()}`,
+            clear: () => onMaxDebtChange(''),
+          },
+        ]
+      : []),
+  ];
+  const hasAnyFilter = activeFilters.length > 0;
 
   const handleClearAll = () => {
     setSearchInput('');
     clearAI();
+    if (onClearAll) return onClearAll();
     handleSearchChange('');
-    onStatusChange('all');
+    onStatusChange('active');
     onPaymentMethodChange('all');
     onCircularssChange('all');
     onAudienceLtChange('');
@@ -226,6 +289,12 @@ export default function StoreFilters({
         overflow: 'hidden',
       }}
     >
+      {/* Se está actualizando: la tabla de abajo sigue mostrando lo anterior. */}
+      <LinearProgress
+        sx={{ height: 2, opacity: fetching ? 1 : 0, transition: 'opacity .2s' }}
+        aria-hidden={!fetching}
+      />
+
       {/* Row 1: compact filter bar */}
       <Stack
         direction={{ xs: 'column', sm: 'row' }}
@@ -237,14 +306,18 @@ export default function StoreFilters({
           size="small"
           value={searchInput}
           onChange={(e) => onSearchInput(e.target.value)}
-          placeholder="Buscar tienda, código o teléfono"
-          onClick={onOpenCommandPalette ? (e) => {
-            // On small screens, tap opens command palette
-            if (window.innerWidth < 600 && onOpenCommandPalette) {
-              e.preventDefault();
-              onOpenCommandPalette();
-            }
-          } : undefined}
+          placeholder="Buscar: nombre, dirección, ciudad, zip, código, teléfono o marca"
+          onClick={
+            onOpenCommandPalette
+              ? (e) => {
+                  // On small screens, tap opens command palette
+                  if (window.innerWidth < 600 && onOpenCommandPalette) {
+                    e.preventDefault();
+                    onOpenCommandPalette();
+                  }
+                }
+              : undefined
+          }
           sx={{
             flex: { xs: '1 1 100%', sm: '2 1 260px' },
             '& .MuiOutlinedInput-root': { height: 40, fontSize: 13, borderRadius: '12px' },
@@ -257,10 +330,26 @@ export default function StoreFilters({
             ),
             endAdornment: onOpenCommandPalette ? (
               <InputAdornment position="end">
+                {searchInput && (
+                  <IconButton
+                    size="small"
+                    aria-label="Borrar búsqueda"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSearchInput('');
+                    }}
+                    sx={{ mr: 0.5, p: 0.25 }}
+                  >
+                    <CloseRoundedIcon sx={{ fontSize: 16 }} />
+                  </IconButton>
+                )}
                 <Tooltip title={`Búsqueda AI (${kbdHint})`}>
                   <Box
                     component="button"
-                    onClick={(e) => { e.stopPropagation(); onOpenCommandPalette(); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenCommandPalette();
+                    }}
                     sx={{
                       // Tecla gris discreta, como en el diseño. La cápsula rosa
                       // con destello competía con la píldora de resultados, que
@@ -309,14 +398,30 @@ export default function StoreFilters({
               </Typography>
             )}
           >
-            <MenuItem value="all"
-sx={{ fontSize: 13 }}>Todas las tiendas</MenuItem>
-            <MenuItem value="active"
-sx={{ fontSize: 13 }}>Activas</MenuItem>
-            <MenuItem value="suspended"
-sx={{ fontSize: 13 }}>Suspendidas</MenuItem>
-            <MenuItem value="cancelled"
-sx={{ fontSize: 13 }}>Canceladas</MenuItem>
+            <MenuItem
+              value="all"
+              sx={{ fontSize: 13 }}
+            >
+              Todas las tiendas
+            </MenuItem>
+            <MenuItem
+              value="active"
+              sx={{ fontSize: 13 }}
+            >
+              Activas
+            </MenuItem>
+            <MenuItem
+              value="suspended"
+              sx={{ fontSize: 13 }}
+            >
+              Suspendidas
+            </MenuItem>
+            <MenuItem
+              value="cancelled"
+              sx={{ fontSize: 13 }}
+            >
+              Canceladas
+            </MenuItem>
           </Select>
         </FormControl>
 
@@ -330,28 +435,66 @@ sx={{ fontSize: 13 }}>Canceladas</MenuItem>
             displayEmpty
             onChange={(e) => onPaymentMethodChange(e.target.value)}
             renderValue={(val) => (
-              <Typography fontSize={13}
-color={!val || val === 'all' ? 'text.secondary' : 'text.primary'}>
-                {!val || val === 'all' ? 'Método pago' : val === 'central_billing' ? 'Central billing' : val.charAt(0).toUpperCase() + val.slice(1)}
+              <Typography
+                fontSize={13}
+                color={!val || val === 'all' ? 'text.secondary' : 'text.primary'}
+              >
+                {!val || val === 'all'
+                  ? 'Método pago'
+                  : val === 'central_billing'
+                    ? 'Central billing'
+                    : val.charAt(0).toUpperCase() + val.slice(1)}
               </Typography>
             )}
           >
-            <MenuItem value="all"
-sx={{ fontSize: 13 }}>Todos</MenuItem>
-            <MenuItem value="central_billing"
-sx={{ fontSize: 13 }}>Central billing</MenuItem>
-            <MenuItem value="check"
-sx={{ fontSize: 13 }}>Check</MenuItem>
-            <MenuItem value="card"
-sx={{ fontSize: 13 }}>Card</MenuItem>
-            <MenuItem value="quickbooks"
-sx={{ fontSize: 13 }}>QuickBooks</MenuItem>
-            <MenuItem value="ach"
-sx={{ fontSize: 13 }}>ACH</MenuItem>
-            <MenuItem value="wire"
-sx={{ fontSize: 13 }}>Wire</MenuItem>
-            <MenuItem value="cash"
-sx={{ fontSize: 13 }}>Cash</MenuItem>
+            <MenuItem
+              value="all"
+              sx={{ fontSize: 13 }}
+            >
+              Todos
+            </MenuItem>
+            <MenuItem
+              value="central_billing"
+              sx={{ fontSize: 13 }}
+            >
+              Central billing
+            </MenuItem>
+            <MenuItem
+              value="check"
+              sx={{ fontSize: 13 }}
+            >
+              Check
+            </MenuItem>
+            <MenuItem
+              value="card"
+              sx={{ fontSize: 13 }}
+            >
+              Card
+            </MenuItem>
+            <MenuItem
+              value="quickbooks"
+              sx={{ fontSize: 13 }}
+            >
+              QuickBooks
+            </MenuItem>
+            <MenuItem
+              value="ach"
+              sx={{ fontSize: 13 }}
+            >
+              ACH
+            </MenuItem>
+            <MenuItem
+              value="wire"
+              sx={{ fontSize: 13 }}
+            >
+              Wire
+            </MenuItem>
+            <MenuItem
+              value="cash"
+              sx={{ fontSize: 13 }}
+            >
+              Cash
+            </MenuItem>
           </Select>
         </FormControl>
 
@@ -378,20 +521,18 @@ sx={{ fontSize: 13 }}>Cash</MenuItem>
           />
         </Tooltip>
 
-
         <Tooltip title={showAdvanced ? 'Ocultar filtros avanzados' : 'Filtros avanzados'}>
           <IconButton
             size="small"
             onClick={() => setShowAdvanced(!showAdvanced)}
             sx={{
               border: '1px solid',
-              borderColor: hasAdvancedFilters
-                ? alpha(theme.palette.text.primary, 0.35)
-                : 'divider',
-              borderRadius: '12px', width: 40, height: 40, flexShrink: 0,
-              bgcolor: hasAdvancedFilters
-                ? alpha(theme.palette.text.primary, 0.06)
-                : 'transparent',
+              borderColor: hasAdvancedFilters ? alpha(theme.palette.text.primary, 0.35) : 'divider',
+              borderRadius: '12px',
+              width: 40,
+              height: 40,
+              flexShrink: 0,
+              bgcolor: hasAdvancedFilters ? alpha(theme.palette.text.primary, 0.06) : 'transparent',
               color: hasAdvancedFilters ? 'text.primary' : 'text.secondary',
             }}
           >
@@ -420,8 +561,80 @@ sx={{ fontSize: 13 }}>Cash</MenuItem>
             {total.toLocaleString()} resultados
           </Box>
         )}
-
       </Stack>
+
+      {/* Hay coincidencias que el filtro de estado esconde: antes una tienda suspendida
+          "no existía" al buscarla. */}
+      {!!searchProp && otherStatusMatches > 0 && status !== 'all' && (
+        <Box
+          sx={{
+            mx: { xs: 1.5, sm: 2 },
+            mb: 1,
+            px: 1.25,
+            py: 0.75,
+            borderRadius: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            flexWrap: 'wrap',
+            bgcolor: (t) => alpha(t.palette.info.main, 0.08),
+          }}
+        >
+          <InfoOutlinedIcon sx={{ fontSize: 16, color: 'info.main' }} />
+          <Typography
+            variant="caption"
+            sx={{ flex: 1, minWidth: 180 }}
+          >
+            {otherStatusMatches === 1
+              ? 'Hay 1 coincidencia más en tiendas que no están'
+              : `Hay ${otherStatusMatches} coincidencias más en tiendas que no están`}{' '}
+            {STATUS_LABELS[status].toLowerCase()}.
+          </Typography>
+          <Button
+            size="small"
+            onClick={() => onStatusChange('all')}
+            sx={{ textTransform: 'none', fontWeight: 700, fontSize: 12.5, py: 0 }}
+          >
+            Buscar en todas
+          </Button>
+        </Box>
+      )}
+
+      {/* Filtros activos: qué está filtrando, de un vistazo, y quitar cada uno en un clic. */}
+      {hasAnyFilter && (
+        <Stack
+          direction="row"
+          gap={0.75}
+          flexWrap="wrap"
+          alignItems="center"
+          sx={{ px: { xs: 1.5, sm: 2 }, pb: 1 }}
+        >
+          {activeFilters.map((f) => (
+            <Chip
+              key={f.key}
+              size="small"
+              label={f.label}
+              onDelete={f.clear}
+              sx={{ height: 26, fontSize: 12, fontWeight: 600, borderRadius: '8px' }}
+            />
+          ))}
+          {activeFilters.length > 1 && (
+            <Button
+              size="small"
+              onClick={handleClearAll}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 700,
+                fontSize: 12,
+                color: 'text.secondary',
+                minWidth: 0,
+              }}
+            >
+              Limpiar todo
+            </Button>
+          )}
+        </Stack>
+      )}
 
       {/* AI suggestion strip */}
       {(aiSuggestion || aiThinking) && (
@@ -434,18 +647,20 @@ sx={{ fontSize: 13 }}>Cash</MenuItem>
             gap: 1,
           }}
         >
-          <AutoAwesomeRoundedIcon
-            sx={{ fontSize: 14, color: 'primary.main', flexShrink: 0 }}
-          />
+          <AutoAwesomeRoundedIcon sx={{ fontSize: 14, color: 'primary.main', flexShrink: 0 }} />
           {aiThinking ? (
-            <Typography variant="caption"
-color="text.secondary">
+            <Typography
+              variant="caption"
+              color="text.secondary"
+            >
               Buscando sugerencias...
             </Typography>
           ) : (
             <>
-              <Typography variant="caption"
-color="text.secondary">
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
                 ¿Quisiste decir:
               </Typography>
               <Chip
@@ -459,11 +674,15 @@ color="text.secondary">
                 variant="outlined"
                 sx={{ fontSize: 12, height: 24, cursor: 'pointer', fontWeight: 700 }}
               />
-              <IconButton size="small"
-onClick={clearAI}
-sx={{ width: 22, height: 22, p: 0 }}>
-                <CancelRounded fontSize="small"
-sx={{ color: 'text.secondary' }} />
+              <IconButton
+                size="small"
+                onClick={clearAI}
+                sx={{ width: 22, height: 22, p: 0 }}
+              >
+                <CancelRounded
+                  fontSize="small"
+                  sx={{ color: 'text.secondary' }}
+                />
               </IconButton>
             </>
           )}

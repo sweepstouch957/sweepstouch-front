@@ -1,7 +1,16 @@
 import storesService from '@/services/store.service';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import debounce from 'lodash.debounce';
-import { ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import {
+  ChangeEvent,
+  Dispatch,
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 
 export type PaymentMethodFilter =
   | 'all'
@@ -15,6 +24,7 @@ export type PaymentMethodFilter =
 export type ProviderFilter = 'all' | 'infobip';
 export type CircularssFilter = 'all' | 'true' | 'false';
 export type StoreStatusFilter = 'all' | 'active' | 'suspended' | 'cancelled';
+export type DebtStatusFilter = 'all' | 'ok' | 'low' | 'high';
 
 export interface UseStoresOptions {
   search?: string;
@@ -24,72 +34,130 @@ export interface UseStoresOptions {
   sortBy?: 'customerCount' | 'name' | 'active' | 'maxDaysOverdue' | string;
   order?: 'asc' | 'desc';
   audienceLt?: string;
-
-  // filtros de morosidad
-  debtStatus?: 'all' | 'ok' | 'low' | 'high';
+  debtStatus?: DebtStatusFilter;
   minDebt?: string;
   maxDebt?: string;
-
-  // ⭐ nuevo: filtro por método de pago
   paymentMethod?: PaymentMethodFilter;
-
-  // ⭐ nuevo: filtro por proveedor SMS
   provider?: ProviderFilter;
-
-  // ⭐ nuevo: pertenece a Circularss
   circularss?: CircularssFilter;
 }
 
+/**
+ * Filtros de la lista de tiendas. Viven en la URL (?q=…&status=…): sobreviven a recargar y
+ * a "volver", y un link con filtros se puede compartir. Sólo se escriben los que difieren
+ * del valor por defecto, para que la URL quede limpia.
+ */
+const DEFAULTS = {
+  q: '',
+  status: 'active' as StoreStatusFilter,
+  page: 0,
+  limit: 50,
+  sortBy: 'customerCount',
+  order: 'desc' as 'asc' | 'desc',
+  audienceLt: '',
+  debtStatus: 'all' as DebtStatusFilter,
+  minDebt: '',
+  maxDebt: '',
+  paymentMethod: 'all' as PaymentMethodFilter,
+  provider: 'all' as ProviderFilter,
+  circularss: 'all' as CircularssFilter,
+};
+
+// Espera entre teclas antes de buscar: 150 ms disparaba una petición casi por letra.
+const SEARCH_DEBOUNCE_MS = 250;
+
 export const useStores = (initialOptions: UseStoresOptions = {}) => {
-  const [page, setPage] = useState(initialOptions.page ?? 0);
-  const [limit, setLimit] = useState(initialOptions.limit ?? 50);
-  const [search, setSearch] = useState(initialOptions.search ?? '');
+  const params = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const fromUrl = (k: keyof typeof DEFAULTS) => params.get(k) ?? undefined;
+
+  const [page, setPage] = useState(Number(fromUrl('page') ?? initialOptions.page ?? DEFAULTS.page));
+  const [limit, setLimit] = useState(
+    Number(fromUrl('limit') ?? initialOptions.limit ?? DEFAULTS.limit)
+  );
+  const [search, setSearch] = useState(fromUrl('q') ?? initialOptions.search ?? DEFAULTS.q);
   const [type, setType] = useState<UseStoresOptions['type']>(initialOptions.type ?? '');
   const [sortBy, setSortBy] = useState<UseStoresOptions['sortBy']>(
-    initialOptions.sortBy ?? 'customerCount'
+    fromUrl('sortBy') ?? initialOptions.sortBy ?? DEFAULTS.sortBy
   );
-  const [order, setOrder] = useState<UseStoresOptions['order']>(initialOptions.order ?? 'desc');
-  const [status, setStatus] = useState<StoreStatusFilter>('active');
-  const [audienceLt, setAudienceLt] = useState<string>(initialOptions.audienceLt ?? '');
-
-  // morosidad
-  const [debtStatus, setDebtStatus] = useState<'all' | 'ok' | 'low' | 'high'>(
-    initialOptions.debtStatus ?? 'all'
+  const [order, setOrder] = useState<'asc' | 'desc'>(
+    (fromUrl('order') as 'asc' | 'desc') ?? initialOptions.order ?? DEFAULTS.order
   );
-  const [minDebt, setMinDebt] = useState<string>(initialOptions.minDebt ?? '');
-  const [maxDebt, setMaxDebt] = useState<string>(initialOptions.maxDebt ?? '');
-
-  // ⭐ payment method
+  const [status, setStatus] = useState<StoreStatusFilter>(
+    (fromUrl('status') as StoreStatusFilter) ?? DEFAULTS.status
+  );
+  const [audienceLt, setAudienceLt] = useState<string>(
+    fromUrl('audienceLt') ?? initialOptions.audienceLt ?? DEFAULTS.audienceLt
+  );
+  const [debtStatus, setDebtStatus] = useState<DebtStatusFilter>(
+    (fromUrl('debtStatus') as DebtStatusFilter) ?? initialOptions.debtStatus ?? DEFAULTS.debtStatus
+  );
+  const [minDebt, setMinDebt] = useState<string>(
+    fromUrl('minDebt') ?? initialOptions.minDebt ?? ''
+  );
+  const [maxDebt, setMaxDebt] = useState<string>(
+    fromUrl('maxDebt') ?? initialOptions.maxDebt ?? ''
+  );
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodFilter>(
-    initialOptions.paymentMethod ?? 'all'
+    (fromUrl('paymentMethod') as PaymentMethodFilter) ??
+      initialOptions.paymentMethod ??
+      DEFAULTS.paymentMethod
   );
-
-  // ⭐ provider
   const [provider, setProvider] = useState<ProviderFilter>(
-    initialOptions.provider ?? 'all'
+    (fromUrl('provider') as ProviderFilter) ?? initialOptions.provider ?? DEFAULTS.provider
   );
-
-  // ⭐ circularss
   const [circularss, setCircularss] = useState<CircularssFilter>(
-    initialOptions.circularss ?? 'all'
+    (fromUrl('circularss') as CircularssFilter) ?? initialOptions.circularss ?? DEFAULTS.circularss
   );
 
   const [searchInput, setSearchInput] = useState(search);
-  const debouncedSearch = useMemo(() => debounce((val: string) => setSearch(val), 150), []);
-
-  const onStatusChange = useCallback((value: StoreStatusFilter) => {
-    setStatus(value);
-    setPage(0);
-  }, []);
-
-  useEffect(
-    () => () => {
-      debouncedSearch.cancel();
-    },
-    [debouncedSearch]
+  const debouncedSearch = useMemo(
+    () => debounce((val: string) => setSearch(val.trim()), SEARCH_DEBOUNCE_MS),
+    []
   );
+  useEffect(() => () => debouncedSearch.cancel(), [debouncedSearch]);
 
-  const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
+  // Estado → URL (replace: no llena el historial con cada letra).
+  useEffect(() => {
+    const next = new URLSearchParams();
+    const put = (k: keyof typeof DEFAULTS, v: string | number) => {
+      if (String(v) !== String(DEFAULTS[k])) next.set(k, String(v));
+    };
+    put('q', search);
+    put('status', status);
+    put('page', page);
+    put('limit', limit);
+    put('sortBy', sortBy ?? DEFAULTS.sortBy);
+    put('order', order);
+    put('audienceLt', audienceLt);
+    put('debtStatus', debtStatus);
+    put('minDebt', minDebt);
+    put('maxDebt', maxDebt);
+    put('paymentMethod', paymentMethod);
+    put('provider', provider);
+    put('circularss', circularss);
+    const qs = next.toString();
+    if (qs !== params.toString())
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    search,
+    status,
+    page,
+    limit,
+    sortBy,
+    order,
+    audienceLt,
+    debtStatus,
+    minDebt,
+    maxDebt,
+    paymentMethod,
+    provider,
+    circularss,
+  ]);
+
+  const { data, isLoading, isError, error, refetch, isFetching, isPlaceholderData } = useQuery({
     queryKey: [
       'stores',
       page,
@@ -103,9 +171,9 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
       debtStatus,
       minDebt,
       maxDebt,
-      paymentMethod, // ⭐ entra al cache key
-      provider,      // ⭐ entra al cache key
-      circularss,    // ⭐ entra al cache key
+      paymentMethod,
+      provider,
+      circularss,
     ],
     queryFn: () =>
       storesService.getStores({
@@ -119,105 +187,96 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
         debtStatus,
         minDebt,
         maxDebt,
-        paymentMethod, // ⭐ se manda al backend
-        provider,      // ⭐ se manda al backend
-        circularss,    // ⭐ se manda al backend
+        paymentMethod,
+        provider,
+        circularss,
       }),
+    // Mientras llega lo nuevo se queda la tabla anterior (sin parpadeo ni "cargando" en
+    // cada tecla); `fetching` avisa que se está actualizando.
+    placeholderData: keepPreviousData,
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
   });
 
-  const handlePageChange = useCallback((newPage: number) => setPage(newPage), []);
+  // Cambiar cualquier filtro vuelve a la página 1.
+  const resetting =
+    <T>(set: Dispatch<SetStateAction<T>>) =>
+    (v: T) => {
+      set(v);
+      setPage(0);
+    };
 
+  const onStatusChange = useCallback(resetting(setStatus), []);
+  const handlePageChange = useCallback((newPage: number) => setPage(newPage), []);
   const handleLimitChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     setLimit(parseInt(e.target.value, 10));
     setPage(0);
   }, []);
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearchInput(value);
+      debouncedSearch(value);
+      setPage(0);
+    },
+    [debouncedSearch]
+  );
+  const handleTypeChange = useCallback(
+    (value: string) => resetting(setType)(value as UseStoresOptions['type']),
+    []
+  );
+  const handleSortChange = useCallback(resetting(setSortBy), []);
+  const handleOrderChange = useCallback(resetting(setOrder), []);
+  const handleAudienceLtChange = useCallback(resetting(setAudienceLt), []);
+  const handleDebtStatusChange = useCallback(resetting(setDebtStatus), []);
+  const handleMinDebtChange = useCallback(resetting(setMinDebt), []);
+  const handleMaxDebtChange = useCallback(resetting(setMaxDebt), []);
+  const handlePaymentMethodChange = useCallback(resetting(setPaymentMethod), []);
+  const handleProviderChange = useCallback(resetting(setProvider), []);
+  const handleCircularssChange = useCallback(resetting(setCircularss), []);
 
-  const handleSearchChange = useCallback((value: string) => {
-    setSearchInput(value);
-    debouncedSearch(value);
+  /** Vuelve todo a como está al entrar (búsqueda incluida). */
+  const clearFilters = useCallback(() => {
+    debouncedSearch.cancel();
+    setSearchInput('');
+    setSearch('');
+    setStatus(DEFAULTS.status);
+    setAudienceLt('');
+    setDebtStatus('all');
+    setMinDebt('');
+    setMaxDebt('');
+    setPaymentMethod('all');
+    setProvider('all');
+    setCircularss('all');
     setPage(0);
   }, [debouncedSearch]);
 
-  const handleTypeChange = useCallback((value: string) => {
-    setType(value as UseStoresOptions['type']);
-    setPage(0);
-  }, []);
-
-  const handleSortChange = useCallback((
-    value: 'customerCount' | 'name' | 'active' | 'maxDaysOverdue' | string
-  ) => {
-    setSortBy(value);
-    setPage(0);
-  }, []);
-
-  const handleOrderChange = useCallback((value: 'asc' | 'desc') => {
-    setOrder(value);
-    setPage(0);
-  }, []);
-
-  const handleAudienceLtChange = useCallback((value: string) => {
-    setAudienceLt(value);
-    setPage(0);
-  }, []);
-
-  const handleDebtStatusChange = useCallback((value: 'all' | 'ok' | 'low' | 'high') => {
-    setDebtStatus(value);
-    setPage(0);
-  }, []);
-
-  const handleMinDebtChange = useCallback((value: string) => {
-    setMinDebt(value);
-    setPage(0);
-  }, []);
-
-  const handleMaxDebtChange = useCallback((value: string) => {
-    setMaxDebt(value);
-    setPage(0);
-  }, []);
-
-  const handlePaymentMethodChange = useCallback((value: PaymentMethodFilter) => {
-    setPaymentMethod(value);
-    setPage(0);
-  }, []);
-
-  const handleProviderChange = useCallback((value: ProviderFilter) => {
-    setProvider(value);
-    setPage(0);
-  }, []);
-
-  const handleCircularssChange = useCallback((value: CircularssFilter) => {
-    setCircularss(value);
-    setPage(0);
-  }, []);
-
   // El backend ya filtra por `status` (enum real) y devuelve el total correcto.
-  // Volver a filtrar en cliente rompía la paginación y el conteo.
   const stores = data?.data || [];
 
   return {
     stores,
     total: data?.total || 0,
+    /** Coincidencias de la búsqueda que el filtro de estado dejó afuera. */
+    otherStatusMatches: data?.otherStatusMatches ?? 0,
     loading: isLoading,
     fetching: isFetching,
+    /** Lo que se ve es de la búsqueda/filtro anterior mientras llega lo nuevo. */
+    stale: isPlaceholderData,
     error: isError ? (error instanceof Error ? error.message : 'Error desconocido') : null,
 
     page,
     limit,
     search: searchInput,
+    /** Lo que efectivamente se buscó (para resaltar coincidencias). */
+    appliedSearch: search,
     type,
     sortBy,
     order,
     status,
     audienceLt,
-
-    // morosidad
     debtStatus,
     minDebt,
     maxDebt,
-
-    // payment
     paymentMethod,
 
     setPage,
@@ -241,16 +300,14 @@ export const useStores = (initialOptions: UseStoresOptions = {}) => {
     handleDebtStatusChange,
     handleMinDebtChange,
     handleMaxDebtChange,
-
-    // ⭐ nuevo handler expuesto
     handlePaymentMethodChange,
 
-    // ⭐ provider
     provider,
     handleProviderChange,
 
-    // ⭐ circularss
     circularss,
     handleCircularssChange,
+
+    clearFilters,
   };
 };

@@ -1,9 +1,9 @@
 // src/services/stores.service.ts
-import type { BusinessType } from './campaing.service';
 import { api } from '@/libs/axios';
 import { Customer } from '@/models/customer';
 import { PaginatedResponse } from '@/models/pagination';
 import { AxiosResponse } from 'axios';
+import type { BusinessType } from './campaing.service';
 
 /* ===================== Types ===================== */
 export type DebtStatus = 'all' | 'ok' | 'min_low' | 'low' | 'mid' | 'high' | 'critical';
@@ -227,6 +227,8 @@ export interface GetStoresResponse {
   success: boolean;
   count: number;
   total: number;
+  /** Con búsqueda: coincidencias que quedaron fuera por el filtro de estado. */
+  otherStatusMatches?: number;
   pagination?: {
     next?: { page: number; limit: number };
     prev?: { page: number; limit: number };
@@ -380,10 +382,7 @@ export const getStoreById = async (id: string): Promise<Store> => {
 };
 
 /** Búsqueda de tiendas por relevancia (AI) — usada por el command palette. */
-export const aiSearchStores = async (
-  q: string,
-  signal?: AbortSignal,
-): Promise<any[]> => {
+export const aiSearchStores = async (q: string, signal?: AbortSignal): Promise<any[]> => {
   const res = await api.get('/store/ai/search', {
     params: { q, limit: 12, score: '1' },
     signal,
@@ -419,9 +418,8 @@ export const updateStore = async (id: string, store: Store): Promise<Store> => {
 
 export async function updateStorePatch(id: string, body: UpdateStoreBody) {
   const hasAnniversary = Object.prototype.hasOwnProperty.call(body, 'aniversaryStore');
-  const anniversary = body.aniversaryStore == null
-    ? null
-    : new Date(body.aniversaryStore).toISOString();
+  const anniversary =
+    body.aniversaryStore == null ? null : new Date(body.aniversaryStore).toISOString();
   const payload = hasAnniversary ? { ...body, aniversaryStore: anniversary } : body;
   const res = await api.patch(`/store/${id}`, payload);
   if (hasAnniversary) {
@@ -429,7 +427,9 @@ export async function updateStorePatch(id: string, body: UpdateStoreBody) {
     const savedTime = savedAnniversary == null ? null : new Date(savedAnniversary).getTime();
     const expectedTime = anniversary == null ? null : new Date(anniversary).getTime();
     if (savedTime !== expectedTime) {
-      throw new Error('El backend no guardó aniversaryStore. Revisa que el store-service en ejecución use el modelo actualizado.');
+      throw new Error(
+        'El backend no guardó aniversaryStore. Revisa que el store-service en ejecución use el modelo actualizado.'
+      );
     }
   }
   return res.data;
@@ -494,7 +494,10 @@ export const getStoreBySlug = async (slug: string): Promise<Store> => {
   return res.data;
 };
 
-export const updateStoreBySlug = async (slug: string, body: Partial<UpdateStoreBody & { mmsTheme?: any }>): Promise<Store> => {
+export const updateStoreBySlug = async (
+  slug: string,
+  body: Partial<UpdateStoreBody & { mmsTheme?: any }>
+): Promise<Store> => {
   const res = await api.patch<Store>(`/store/by-slug/${slug}`, body);
   return res.data;
 };
@@ -593,7 +596,10 @@ export const createContractApi = async (body: CreateContractBody): Promise<Store
   return res.data;
 };
 
-export const patchContract = async (id: string, body: Partial<StoreContract>): Promise<StoreContract> => {
+export const patchContract = async (
+  id: string,
+  body: Partial<StoreContract>
+): Promise<StoreContract> => {
   const res = await api.patch(`/store/contracts/${id}`, body);
   return res.data;
 };

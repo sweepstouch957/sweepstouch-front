@@ -1,6 +1,6 @@
-import { useStores } from '@/hooks/stores/useStores';
 import ExportButton from '@/components/application-ui/buttons/export-button';
 import { PageHero } from '@/components/application-ui/content-shells/store-managment/panel-kit';
+import { useStores } from '@/hooks/stores/useStores';
 import AddBusinessRoundedIcon from '@mui/icons-material/AddBusinessRounded';
 import { Box, Button } from '@mui/material';
 import Link from 'next/link';
@@ -10,8 +10,8 @@ import StoreFilter from './filter';
 import { formatMoney, StoresBillingHeader, useStoresBillingSummary } from './header';
 import Results from './results';
 import { StoreCommandPalette, useCommandPalette } from './StoreCommandPalette';
-import StoreExportDialog from './StoreExportDialog';
 import { buildExportRows } from './storeExport';
+import StoreExportDialog from './StoreExportDialog';
 
 /**
  * Exporta el listado de tiendas RESPETANDO los filtros de pantalla
@@ -63,6 +63,9 @@ function Component() {
   const {
     stores,
     total,
+    otherStatusMatches,
+    appliedSearch,
+    clearFilters,
     loading,
     fetching,
     error,
@@ -211,6 +214,9 @@ function Component() {
         circularss={circularss}
         onCircularssChange={handleCircularssChange}
         onOpenCommandPalette={openPalette}
+        otherStatusMatches={otherStatusMatches}
+        fetching={fetching && !loading}
+        onClearAll={clearFilters}
       />
 
       <Results
@@ -227,6 +233,7 @@ function Component() {
         loading={loading}
         fetching={fetching}
         error={error}
+        highlight={appliedSearch}
       />
 
       <StoreCommandPalette
