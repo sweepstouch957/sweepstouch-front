@@ -103,6 +103,13 @@ export interface PurchasesResponse {
 
 const BASE = '/tracking';
 
+export interface ListsInsights {
+  topListed: { name: string; imageUrl?: string; price?: string; lists: number; quantity: number }[];
+  listCustomers: number;
+  avgItemsPerList: number;
+  redeemed: { claims: number; points: number; customers: number };
+}
+
 export const shoppingListsService = {
   lists: async (params: {
     storeSlug: string;
@@ -167,6 +174,12 @@ export const shoppingListsService = {
   },
 
   /** Productos pedidos desde Mi Toque ("¿Qué producto de tu tierra no encuentras?"). */
+  /** Productos que más se ponen en las listas, clientes con listas y canjes de puntos. */
+  insights: async (storeSlug: string): Promise<ListsInsights> => {
+    const { data } = await api.get(`${BASE}/list-admin/insights`, { params: { storeSlug } });
+    return data;
+  },
+
   productRequests: async (storeSlug: string): Promise<ProductRequestsResponse> => {
     const { data } = await api.get(`${BASE}/list-admin/product-requests`, {
       params: { storeSlug },
@@ -236,4 +249,10 @@ export const shoppingListsQK = {
   receipts: (storeSlug: string, status?: string) =>
     ['shopping-lists', 'receipts', storeSlug, status ?? 'all'] as const,
   purchases: (storeSlug: string) => ['shopping-lists', 'purchases', storeSlug] as const,
+  insights: (storeSlug: string) => ['shopping-lists', 'insights', storeSlug] as const,
+  timeline: (storeSlug: string, days: number) =>
+    ['shopping-lists', 'timeline', storeSlug, days] as const,
+  surveys: (storeSlug: string) => ['shopping-lists', 'surveys', storeSlug] as const,
+  productRequests: (storeSlug: string) =>
+    ['shopping-lists', 'product-requests', storeSlug] as const,
 };

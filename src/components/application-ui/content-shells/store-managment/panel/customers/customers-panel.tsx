@@ -1,4 +1,6 @@
 import NextLink from 'next/link';
+import dynamic from 'next/dynamic';
+import InsightsRoundedIcon from '@mui/icons-material/InsightsRounded';
 import ShareRoundedIcon from '@mui/icons-material/ShareRounded';
 import CustomersGrid from '@/components/application-ui/tables/customers/customers-grid';
 import { Box, Button, Paper, Stack, Tooltip, Typography } from '@mui/material';
@@ -25,6 +27,9 @@ import {
   VerifiedUserRounded,
 } from '@mui/icons-material';
 
+// Dashboard de clientes (KPIs, listas, puntos, top clientes y productos): se baja al abrirlo.
+const CustomersDashboardDialog = dynamic(() => import('./customers-dashboard-dialog'), { ssr: false });
+
 interface CustomersPanelProps {
   storeId: string;
   storeName?: string;
@@ -41,6 +46,7 @@ const CustomersPanel: FC<CustomersPanelProps> = ({ storeId, storeName, provider,
   const [openBulkInactivate, setOpenBulkInactivate] = useState(false);
   const [openAnalisis, setOpenAnalisis] = useState(false);
   const [openAuditoria, setOpenAuditoria] = useState(false);
+  const [openDashboard, setOpenDashboard] = useState(false);
   const queryClient = useQueryClient();
 
   const handleImportSuccess = () => {
@@ -132,6 +138,21 @@ const CustomersPanel: FC<CustomersPanelProps> = ({ storeId, storeName, provider,
           direction={{ xs: 'column', sm: 'row' }}
           gap={1.5}
         >
+          <Button
+            variant="outlined"
+            color="primary"
+            size="large"
+            startIcon={<InsightsRoundedIcon />}
+            onClick={() => setOpenDashboard(true)}
+            sx={{
+              borderRadius: 2,
+              textTransform: 'none',
+              fontWeight: 700,
+              px: 3,
+            }}
+          >
+            Dashboard
+          </Button>
           {/* La base ya cargada también se puede activar sin importar nada:
               dándole acceso a otra tienda que sí manda campañas. */}
           <Button
@@ -233,6 +254,15 @@ const CustomersPanel: FC<CustomersPanelProps> = ({ storeId, storeName, provider,
       />
 
       {/* Modal de Importación */}
+      {openDashboard && (
+        <CustomersDashboardDialog
+          open={openDashboard}
+          onClose={() => setOpenDashboard(false)}
+          storeSlug={slug || ''}
+          storeName={storeName}
+        />
+      )}
+
       <ImportCustomersModal
         open={openImport}
         onClose={() => setOpenImport(false)}
