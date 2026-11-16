@@ -31,6 +31,7 @@ export const circularKeys = {
 
   // Próximos e imports
   upcoming: (slug: string) => ['store-upcoming', slug] as const,
+  allUpcoming: () => ['store-upcoming'] as const,
   campaignImport: (campaignId?: string) => ['campaign-import', campaignId] as const,
   importJobs: (slug: string) => ['import-jobs', slug] as const,
 

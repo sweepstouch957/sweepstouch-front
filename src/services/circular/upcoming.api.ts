@@ -54,6 +54,18 @@ export const upcomingApi = {
     return res.data.item;
   },
 
+  /** Aprobar por adelantado (Revisar y publicar): sale solo en su fecha. */
+  async approveReview(circularId: string): Promise<{ ok: boolean }> {
+    const res = await api.post(`/circulars/circular/${circularId}/approve-review`);
+    return res.data;
+  },
+
+  /** Quitar la aprobación: ese día vuelve a quedar "Por revisar". */
+  async unapproveReview(circularId: string): Promise<{ ok: boolean }> {
+    const res = await api.delete(`/circulars/circular/${circularId}/approve-review`);
+    return res.data;
+  },
+
   /** Publica ya un producto que esperaba su fecha. */
   async publishPendingNow(id: string): Promise<{ applied: number }> {
     const res = await api.post(`/circulars/store-product/${id}/pending/apply`);

@@ -16,12 +16,29 @@ export function useCatalogPage(
   storeSlug: string,
   page: number,
   search: string,
-  show?: CatalogShow
+  show: CatalogShow = 'all',
+  /** Flyer/circular que manda hoy: lo usa el filtro "Flyer actual". */
+  rulingId?: string
 ) {
+  const byRuling = show === 'ruling' && !!rulingId;
   return useQuery({
-    queryKey: circularKeys.catalogPage(storeSlug, page, search.trim(), show || 'all'),
+    queryKey: circularKeys.catalogPage(
+      storeSlug,
+      page,
+      search.trim(),
+      byRuling ? `ruling:${rulingId}` : show
+    ),
     queryFn: () =>
-      circularService.getCatalogAdmin(storeSlug, { page, limit: PAGE_SIZE, q: search, show }),
+      circularService.getCatalogAdmin(storeSlug, {
+        page,
+        limit: PAGE_SIZE,
+        q: search,
+        ...(byRuling
+          ? { circularId: rulingId, when: 'live' as const }
+          : show === 'all' || show === 'ruling'
+            ? {}
+            : { show }),
+      }),
     enabled: !!storeSlug,
     staleTime: 30_000,
     // Cada combinación página+búsqueda es una entrada de caché con 50 productos: se suelta
@@ -32,6 +49,18 @@ export function useCatalogPage(
     // "Generando…" a su foto final sin recargar.
     refetchInterval: (q) => (q.state.data?.cleaning ? 8000 : false),
   });
+}
+
+/** Cuántos productos quedan "Por revisar" (para el botón Publicar y el filtro). */
+export function useReviewCount(storeSlug: string) {
+  const q = useQuery({
+    queryKey: circularKeys.catalogPage(storeSlug, 1, '', 'review-count'),
+    queryFn: () =>
+      circularService.getCatalogAdmin(storeSlug, { page: 1, limit: 1, show: 'review' }),
+    enabled: !!storeSlug,
+    staleTime: 30_000,
+  });
+  return q.data?.total ?? 0;
 }
 
 /** Las categorías las arma cada tienda: se ofrecen las suyas + la base, y se puede

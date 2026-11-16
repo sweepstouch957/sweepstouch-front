@@ -9,6 +9,7 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import {
   Autocomplete,
   Box,
+  Chip,
   CircularProgress,
   IconButton,
   Stack,
@@ -254,6 +255,24 @@ export const CatalogRow = memo(function CatalogRow({
             align="center"
             data-label="Visible"
           >
+            {p.pendingReview && (
+              <Tooltip title="Lo trajo el flyer y nadie lo validó todavía. Revísalo y prende el switch (o usa Publicar).">
+                <Chip
+                  size="small"
+                  color="warning"
+                  label="Por revisar"
+                  sx={{
+                    height: 20,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    display: 'flex',
+                    mx: 'auto',
+                    mb: 0.5,
+                    width: 'fit-content',
+                  }}
+                />
+              </Tooltip>
+            )}
             <Switch
               size="small"
               checked={p.visibleInRcs !== false}

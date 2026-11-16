@@ -8,6 +8,7 @@ import { Alert, Box, Skeleton } from '@mui/material';
 import dynamic from 'next/dynamic';
 import { useCallback, useMemo, useState } from 'react';
 import CircularTab from './circular-tab';
+import FlyerFab from './header/FlyerFab';
 import PanelHeader from './header/PanelHeader';
 import { type PanelTab } from './header/tabs';
 import { useUpcomingCount } from './hooks';
@@ -98,6 +99,8 @@ export default function StoreCircularPanel({
       )}
       {tab === 'upcoming' && <UpcomingProductsSection storeSlug={storeSlug} />}
       {tab === 'products' && <CatalogSection storeSlug={storeSlug} />}
+      {/* Ver el flyer/circular en todo momento (también desde el teléfono). */}
+      <FlyerFab storeSlug={storeSlug} />
       {tab === 'lists' && <ListsSection storeSlug={storeSlug} />}
       {tab === 'postcard' && <PostcardSection storeSlug={storeSlug} />}
       {tab === 'purchases' && <PurchasesSection storeSlug={storeSlug} />}

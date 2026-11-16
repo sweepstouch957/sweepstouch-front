@@ -14,6 +14,7 @@ import { alpha, Box, Button, Chip, Stack, Tooltip, Typography } from '@mui/mater
 import Image from 'next/image';
 import { memo, useCallback, useState } from 'react';
 import { MoreMenu } from '../panelUi';
+import { ApproveFlyerButton } from './ApproveFlyerButton';
 import UpcomingProductCard from './UpcomingProductCard';
 import { fmtDay, fmtMonth, GROUP_PREVIEW, originLabel, relDay, type UpcomingBanner } from './utils';
 
@@ -211,9 +212,11 @@ function UpcomingGroupCard({
               ]}
             />
           )}
+          {/* Validar por adelantado: aprobado = sale solo en su fecha */}
+          <ApproveFlyerButton group={g} />
           <Button
             size="small"
-            variant="contained"
+            variant="outlined"
             startIcon={<RocketLaunchOutlinedIcon />}
             onClick={() => onPublishGroup(g)}
           >

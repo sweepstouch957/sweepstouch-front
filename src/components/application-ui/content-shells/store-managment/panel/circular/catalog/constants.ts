@@ -13,7 +13,8 @@ export type RescanMode = 'missing' | 'all' | 'flyer';
 export type SourceKind = 'flyer' | 'circular';
 
 /** Filtro de la tabla: sólo visibles, ocultos o los que esperan fecha (vacío = todos). */
-export type CatalogShow = 'visible' | 'hidden' | 'pending';
+/** 'ruling' = los del flyer/circular que manda hoy (por defecto); 'all' = todo el catálogo. */
+export type CatalogShow = 'ruling' | 'review' | 'visible' | 'hidden' | 'pending' | 'all';
 
 /** Tag de origen del producto: flyer de campaña / circular / manual. */
 export const SOURCE_TAG: Record<

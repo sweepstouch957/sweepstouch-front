@@ -8,11 +8,13 @@ import { MoreMenu, type MoreMenuItem } from '../panelUi';
 import type { CatalogShow } from './constants';
 import { plural } from './utils';
 
-const SHOW_OPTIONS: { label: string; value: CatalogShow | undefined }[] = [
-  { label: 'Todos', value: undefined },
-  { label: 'Sólo visibles', value: 'visible' },
+const SHOW_OPTIONS: { label: string; value: CatalogShow }[] = [
+  { label: 'Flyer actual', value: 'ruling' },
+  { label: 'Por revisar', value: 'review' },
+  { label: 'Visibles', value: 'visible' },
   { label: 'Ocultos', value: 'hidden' },
   { label: 'Esperan fecha', value: 'pending' },
+  { label: 'Todo el catálogo', value: 'all' },
 ];
 
 export function CatalogToolbar({
@@ -25,11 +27,17 @@ export function CatalogToolbar({
   onFillRegulars,
   onAdd,
   menu,
+  reviewCount = 0,
+  hasRuling = true,
 }: {
   search: string;
   onSearch: (v: string) => void;
-  show?: CatalogShow;
-  onShow: (v: CatalogShow | undefined) => void;
+  show: CatalogShow;
+  onShow: (v: CatalogShow) => void;
+  /** Cuántos quedan por revisar (se ve en el filtro). */
+  reviewCount?: number;
+  /** Sin flyer/circular vigente no hay "Flyer actual". */
+  hasRuling?: boolean;
   /** Productos de la página sin precio regular (se calcula +25%). */
   missingRegular: number;
   filling: boolean;
@@ -64,11 +72,11 @@ export function CatalogToolbar({
         gap={0.75}
         flexWrap="wrap"
       >
-        {SHOW_OPTIONS.map((o) => (
+        {SHOW_OPTIONS.filter((o) => hasRuling || o.value !== 'ruling').map((o) => (
           <Chip
             key={o.label}
             size="small"
-            label={o.label}
+            label={o.value === 'review' && reviewCount ? `${o.label} (${reviewCount})` : o.label}
             color={show === o.value ? 'primary' : 'default'}
             variant={show === o.value ? 'filled' : 'outlined'}
             onClick={() => onShow(o.value)}

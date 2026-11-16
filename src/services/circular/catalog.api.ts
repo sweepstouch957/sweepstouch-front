@@ -32,7 +32,7 @@ export const catalogApi = {
       circularId?: string;
       when?: 'live' | 'next';
       /** Panel: sólo visibles, sólo ocultos o sólo los que esperan fecha. */
-      show?: 'visible' | 'hidden' | 'pending';
+      show?: 'visible' | 'hidden' | 'pending' | 'review';
     }
   ): Promise<{
     storeSlug: string;
@@ -50,9 +50,11 @@ export const catalogApi = {
         ...(opts?.q?.trim() ? { q: opts.q.trim() } : {}),
         ...(opts?.show === 'pending'
           ? { pending: 'true' }
-          : opts?.show
-            ? { visible: String(opts.show === 'visible') }
-            : {}),
+          : opts?.show === 'review'
+            ? { review: 'true' }
+            : opts?.show
+              ? { visible: String(opts.show === 'visible') }
+              : {}),
         // Panel por fuente: sólo los productos de ese flyer/circular (vigente o programado).
         ...(opts?.circularId ? { circularId: opts.circularId, when: opts.when || 'live' } : {}),
       },

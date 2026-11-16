@@ -199,6 +199,8 @@ export interface PageAudit {
 
 /** Producto del catálogo persistente de la tienda (StoreProduct en circular-service). */
 export interface StoreProduct {
+  /** Lo trajo un flyer/circular y falta validarlo y publicarlo (Revisar y publicar). */
+  pendingReview?: boolean;
   _id: string;
   storeSlug: string;
   name: string;
@@ -277,6 +279,9 @@ export interface UpcomingGroup {
     /** Imagen para recortar; vacío si es PDF (se pide la portada con getPreviewImage). */
     flyerUrl: string;
     hasFile: boolean;
+    /** Aprobado por adelantado: sus productos salen solos en su fecha. */
+    reviewApprovedAt?: string | null;
+    reviewApprovedBy?: string;
   } | null;
   items: StoreProduct[];
 }

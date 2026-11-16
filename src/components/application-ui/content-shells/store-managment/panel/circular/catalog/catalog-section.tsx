@@ -4,7 +4,7 @@
  *  Contenedor: es el único que conoce React Query; lo demás recibe datos y callbacks. */
 import type { StoreProduct } from '@/services/circular';
 import type { DropResult } from '@hello-pangea/dnd';
-import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
+import PublishRoundedIcon from '@mui/icons-material/PublishRounded';
 import { Box, Button, LinearProgress, Stack, Tooltip, Typography } from '@mui/material';
 import { useCallback, useDeferredValue, useMemo, useState } from 'react';
 import { PanelCard, SectionHeader } from '../../../panel-kit';
@@ -19,13 +19,19 @@ import { applyCatalogOrder, moveCatalogItem } from './catalog-order';
 import { CatalogTable } from './catalog-table';
 import { CatalogToolbar } from './catalog-toolbar';
 import { ClearCatalogDialog } from './clear-catalog-dialog';
+import { ConfirmShowDialog } from './confirm-show-dialog';
 import { PAGE_SIZE, PASTE_HINT, type CatalogShow } from './constants';
 import { DeleteProductDialog } from './delete-product-dialog';
 import { FillDetailsDialog } from './fill-details-dialog';
 import { RescanPhotosDialog } from './rescan-photos-dialog';
 import { RulingBar } from './ruling-bar';
 import { SyncVisibilityDialog } from './sync-visibility-dialog';
-import { useCatalogPage, useCategoryOptions, useEditorSources } from './use-catalog-data';
+import {
+  useCatalogPage,
+  useCategoryOptions,
+  useEditorSources,
+  useReviewCount,
+} from './use-catalog-data';
 import { useFillDetails, useOpenRuling, useRescanPhotos } from './use-catalog-jobs';
 import {
   useCleanImages,
@@ -44,9 +50,16 @@ type Dialog = 'clear' | 'sync' | 'rescan' | 'details' | null;
 export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [show, setShow] = useState<CatalogShow | undefined>();
+  // Por defecto sólo lo del flyer/circular que manda hoy: el catálogo entero (cientos de
+  // productos viejos) confundía a quien valida. "Todo el catálogo" sigue a un clic.
+  const [chosenShow, setShow] = useState<CatalogShow | null>(null);
   const deferredSearch = useDeferredValue(search);
-  const catalog = useCatalogPage(storeSlug, page, deferredSearch, show);
+  const ruling = useCatalogSummary(storeSlug).data?.ruling ?? null;
+  const show: CatalogShow = chosenShow ?? (ruling ? 'ruling' : 'all');
+  const catalog = useCatalogPage(storeSlug, page, deferredSearch, show, ruling?.id);
+  const reviewCount = useReviewCount(storeSlug);
+  // Prender un producto pide confirmación (Revisar y publicar); apagarlo es inmediato.
+  const [toShow, setToShow] = useState<StoreProduct | null>(null);
   const categoryOptions = useCategoryOptions(storeSlug);
   const cleaning = !!catalog.data?.cleaning;
 
@@ -63,7 +76,17 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
     product: null,
   });
 
-  const { onPatch, onPatchPending, onCategory } = useProductPatches(storeSlug);
+  const { onPatch: patchNow, onPatchPending, onCategory } = useProductPatches(storeSlug);
+  const onPatch = useCallback(
+    (id: string, body: Parameters<typeof patchNow>[1]) => {
+      if (body.visibleInRcs === true && Object.keys(body).length === 1) {
+        const p = (catalog.data?.items ?? []).find((x) => x._id === id);
+        if (p) return setToShow(p);
+      }
+      patchNow(id, body);
+    },
+    [patchNow, catalog.data]
+  );
   const saveOrder = useSaveOrder();
   const removeProduct = useRemoveProduct(storeSlug);
   const cleanImages = useCleanImages(storeSlug);
@@ -71,8 +94,6 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
   const syncVisibility = useSyncVisibility(storeSlug);
   const fillAll = useFillRegulars(storeSlug);
 
-  // Qué flyer o circular manda hoy: para verlo desde acá y rescanear SÓLO sus productos.
-  const ruling = useCatalogSummary(storeSlug).data?.ruling ?? null;
   const openPreview = useCallback(
     (url: string, title: string) => setImgPreview({ url, title }),
     []
@@ -154,15 +175,20 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
           count={catalog.isLoading ? undefined : total}
           hint="Lo que ve el cliente en sus listas"
           action={
-            <Tooltip title="Deja visibles en el Pre-RCS SOLO los productos del último flyer de campaña o SOLO los del último circular, y oculta el resto. Un click en vez de switch por switch.">
+            <Tooltip title="Muestra a los clientes SOLO los productos del último flyer (o del último circular) y oculta el resto. Pide confirmar que revisaste.">
               <Button
                 size="small"
                 variant="contained"
-                startIcon={<AutoAwesomeOutlinedIcon />}
+                color={reviewCount ? 'warning' : 'primary'}
+                startIcon={<PublishRoundedIcon />}
                 disabled={syncVisibility.isPending}
                 onClick={() => setDialog('sync')}
               >
-                {syncVisibility.isPending ? 'Sincronizando…' : 'Visibles = último flyer / circular'}
+                {syncVisibility.isPending
+                  ? 'Publicando…'
+                  : reviewCount
+                    ? `Publicar (${reviewCount} por revisar)`
+                    : 'Publicar'}
               </Button>
             </Tooltip>
           }
@@ -175,9 +201,9 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
             variant="body2"
             color="text.secondary"
           >
-            Estos son los productos que ve el cliente en el flujo de listas (Pre-RCS). Solo salen
-            los que tienen <strong>oferta</strong> y están <strong>visibles</strong>; los switches
-            aplican al instante. {PASTE_HINT}
+            Lo que trae un flyer nuevo queda <strong>Por revisar</strong> y el cliente no lo ve
+            hasta que lo publiques. Revisa y corrige en la misma fila (nombre, precios, categoría)
+            comparando con el flyer, y después <strong>Publicar</strong>. {PASTE_HINT}
           </Typography>
           {ruling && (
             <RulingBar
@@ -201,6 +227,8 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
               setShow(v);
               setPage(1);
             }}
+            reviewCount={reviewCount}
+            hasRuling={!!ruling}
             missingRegular={missingRegular.length}
             filling={fillAll.isPending}
             onFillRegulars={() => fillAll.mutate(missingRegular)}
@@ -272,9 +300,15 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
         onClose={closeDialog}
         onConfirm={(circulars) => clearAll.mutate(circulars, { onSuccess: closeDialog })}
       />
+      <ConfirmShowDialog
+        product={toShow}
+        onClose={() => setToShow(null)}
+        onConfirm={(p) => patchNow(p._id, { visibleInRcs: true })}
+      />
       <SyncVisibilityDialog
         open={dialog === 'sync'}
         busy={syncVisibility.isPending}
+        pendingReview={reviewCount}
         onClose={closeDialog}
         onSync={(only) => syncVisibility.mutate(only, { onSuccess: closeDialog })}
       />
