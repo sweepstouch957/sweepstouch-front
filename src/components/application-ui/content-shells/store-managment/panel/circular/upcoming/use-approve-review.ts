@@ -2,6 +2,7 @@
 
 /** Aprobar por adelantado un flyer/circular programado (o quitar la aprobación). */
 import { circularService } from '@/services/circular';
+import { useAuth } from '@/hooks/use-auth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { errMsg } from '../domain/errors';
@@ -9,10 +10,13 @@ import { circularKeys } from '../query-keys';
 
 export function useApproveReview() {
   const qc = useQueryClient();
+  const { user } = useAuth();
+  // Quién aprobó: los agentes lo dicen en la bitácora ("Johely revisó y aprobó…").
+  const by = [user?.firstName, user?.lastName].filter(Boolean).join(' ');
   return useMutation({
     mutationFn: ({ circularId, approve }: { circularId: string; approve: boolean }) =>
       approve
-        ? circularService.approveReview(circularId)
+        ? circularService.approveReview(circularId, by)
         : circularService.unapproveReview(circularId),
     onSuccess: (_r, v) => {
       toast.success(

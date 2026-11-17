@@ -14,7 +14,15 @@ export type SourceKind = 'flyer' | 'circular';
 
 /** Filtro de la tabla: sólo visibles, ocultos o los que esperan fecha (vacío = todos). */
 /** 'ruling' = los del flyer/circular que manda hoy (por defecto); 'all' = todo el catálogo. */
-export type CatalogShow = 'ruling' | 'review' | 'visible' | 'hidden' | 'pending' | 'all';
+/** 'current' = vigentes y próximos (sin lo de flyers vencidos). */
+export type CatalogShow =
+  | 'current'
+  | 'ruling'
+  | 'review'
+  | 'visible'
+  | 'hidden'
+  | 'pending'
+  | 'all';
 
 /** Tag de origen del producto: flyer de campaña / circular / manual. */
 export const SOURCE_TAG: Record<

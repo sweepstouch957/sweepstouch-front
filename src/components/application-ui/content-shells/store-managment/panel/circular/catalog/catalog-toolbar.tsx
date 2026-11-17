@@ -9,6 +9,7 @@ import type { CatalogShow } from './constants';
 import { plural } from './utils';
 
 const SHOW_OPTIONS: { label: string; value: CatalogShow }[] = [
+  { label: 'Vigentes y próximos', value: 'current' },
   { label: 'Flyer actual', value: 'ruling' },
   { label: 'Por revisar', value: 'review' },
   { label: 'Visibles', value: 'visible' },

@@ -221,34 +221,42 @@ export const CatalogRow = memo(function CatalogRow({
             sx={cell}
             data-label="Categoría"
           >
-            <Autocomplete
-              freeSolo
-              size="small"
-              options={categoryOptions}
-              value={p.category || 'other'}
-              onChange={(_, v) => saveCategory(String(v || ''))}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  variant="standard"
-                  placeholder="categoría"
-                  // Escribir una nueva y salir del campo también la guarda.
-                  onBlur={(e) => saveCategory(e.target.value)}
-                />
-              )}
-            />
+            <Tooltip
+              placement="top"
+              enterDelay={400}
+              title="Categoría de la lista (frutas, carnes…). Elige una o escribe una nueva"
+            >
+              <Autocomplete
+                freeSolo
+                size="small"
+                options={categoryOptions}
+                value={p.category || 'other'}
+                onChange={(_, v) => saveCategory(String(v || ''))}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    variant="standard"
+                    placeholder="categoría"
+                    // Escribir una nueva y salir del campo también la guarda.
+                    onBlur={(e) => saveCategory(e.target.value)}
+                  />
+                )}
+              />
+            </Tooltip>
           </TableCell>
           <TableCell
             sx={cell}
             align="center"
             data-label="En oferta"
           >
-            <Switch
-              size="small"
-              checked={!!p.onPromotion}
-              inputProps={{ 'aria-label': `En oferta: ${p.name}` }}
-              onChange={(e) => onPatch(p._id, { onPromotion: e.target.checked })}
-            />
+            <Tooltip title="Prendido = sale marcado como oferta en la lista del cliente">
+              <Switch
+                size="small"
+                checked={!!p.onPromotion}
+                inputProps={{ 'aria-label': `En oferta: ${p.name}` }}
+                onChange={(e) => onPatch(p._id, { onPromotion: e.target.checked })}
+              />
+            </Tooltip>
           </TableCell>
           <TableCell
             sx={cell}
@@ -273,12 +281,14 @@ export const CatalogRow = memo(function CatalogRow({
                 />
               </Tooltip>
             )}
-            <Switch
-              size="small"
-              checked={p.visibleInRcs !== false}
-              inputProps={{ 'aria-label': `Visible: ${p.name}` }}
-              onChange={(e) => onPatch(p._id, { visibleInRcs: e.target.checked })}
-            />
+            <Tooltip title="Prendido = los clientes lo ven en su lista. Préndelo sólo si revisaste nombre, precio y foto contra el flyer">
+              <Switch
+                size="small"
+                checked={p.visibleInRcs !== false}
+                inputProps={{ 'aria-label': `Visible: ${p.name}` }}
+                onChange={(e) => onPatch(p._id, { visibleInRcs: e.target.checked })}
+              />
+            </Tooltip>
           </TableCell>
           <TableCell
             sx={cell}

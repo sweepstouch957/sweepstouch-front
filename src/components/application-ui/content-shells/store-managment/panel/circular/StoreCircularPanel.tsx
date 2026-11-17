@@ -100,7 +100,10 @@ export default function StoreCircularPanel({
       {tab === 'upcoming' && <UpcomingProductsSection storeSlug={storeSlug} />}
       {tab === 'products' && <CatalogSection storeSlug={storeSlug} />}
       {/* Ver el flyer/circular en todo momento (también desde el teléfono). */}
-      <FlyerFab storeSlug={storeSlug} />
+      <FlyerFab
+        storeId={storeId}
+        storeSlug={storeSlug}
+      />
       {tab === 'lists' && <ListsSection storeSlug={storeSlug} />}
       {tab === 'postcard' && <PostcardSection storeSlug={storeSlug} />}
       {tab === 'purchases' && <PurchasesSection storeSlug={storeSlug} />}

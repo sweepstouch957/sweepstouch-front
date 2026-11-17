@@ -50,36 +50,47 @@ export function PriceCell({
       sx={cell}
       data-label={label}
     >
-      <TextField
-        // La key lleva el valor: si el servidor trae otro precio, el campo lo muestra.
-        key={`${pend ? `pend-${pend.from}` : 'today'}-${(pend ? pend[field] : today) ?? ''}`}
-        title="Clic para editar · Enter guarda · Esc deshace"
-        onKeyDown={(e) => {
-          const el = e.target as HTMLInputElement;
-          if (e.key === 'Escape') {
-            el.value = String((pend ? pend[field] : today) ?? '');
-            el.blur();
-          } else if (e.key === 'Enter') el.blur();
-        }}
-        sx={{
-          '& .MuiInputBase-root': {
-            px: 0.5,
-            borderRadius: 1,
-            '&:hover': { bgcolor: 'action.hover' },
-            '&.Mui-focused': { boxShadow: (t) => `0 0 0 2px ${t.palette.primary.main}` },
-            '&::before, &::after': { display: 'none' },
-          },
-        }}
-        size="small"
-        variant="standard"
-        label={pend ? `Sale el ${fmtDate(pend.from)}` : undefined}
-        color={pend ? 'warning' : undefined}
-        focused={pend ? true : undefined}
-        defaultValue={(pend ? pend[field] : today) ?? ''}
-        fullWidth
-        inputProps={{ 'aria-label': `${label} de ${p.name}` }}
-        onBlur={(e) => save(e.target.value.trim())}
-      />
+      <Tooltip
+        placement="top"
+        enterDelay={400}
+        title={`${
+          field === 'price'
+            ? 'Precio de oferta del flyer (lo que paga el cliente)'
+            : field === 'originalPrice'
+              ? 'Precio regular, sin oferta'
+              : 'Cuánto ahorra el cliente'
+        }${pend ? ' · éste es el que VA a salir en su fecha' : ''} · Enter guarda · Esc deshace`}
+      >
+        <TextField
+          // La key lleva el valor: si el servidor trae otro precio, el campo lo muestra.
+          key={`${pend ? `pend-${pend.from}` : 'today'}-${(pend ? pend[field] : today) ?? ''}`}
+          onKeyDown={(e) => {
+            const el = e.target as HTMLInputElement;
+            if (e.key === 'Escape') {
+              el.value = String((pend ? pend[field] : today) ?? '');
+              el.blur();
+            } else if (e.key === 'Enter') el.blur();
+          }}
+          sx={{
+            '& .MuiInputBase-root': {
+              px: 0.5,
+              borderRadius: 1,
+              '&:hover': { bgcolor: 'action.hover' },
+              '&.Mui-focused': { boxShadow: (t) => `0 0 0 2px ${t.palette.primary.main}` },
+              '&::before, &::after': { display: 'none' },
+            },
+          }}
+          size="small"
+          variant="standard"
+          label={pend ? `Sale el ${fmtDate(pend.from)}` : undefined}
+          color={pend ? 'warning' : undefined}
+          focused={pend ? true : undefined}
+          defaultValue={(pend ? pend[field] : today) ?? ''}
+          fullWidth
+          inputProps={{ 'aria-label': `${label} de ${p.name}` }}
+          onBlur={(e) => save(e.target.value.trim())}
+        />
+      </Tooltip>
       {pend && (
         <Typography
           variant="body2"

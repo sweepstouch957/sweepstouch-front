@@ -55,8 +55,8 @@ export const upcomingApi = {
   },
 
   /** Aprobar por adelantado (Revisar y publicar): sale solo en su fecha. */
-  async approveReview(circularId: string): Promise<{ ok: boolean }> {
-    const res = await api.post(`/circulars/circular/${circularId}/approve-review`);
+  async approveReview(circularId: string, by?: string): Promise<{ ok: boolean }> {
+    const res = await api.post(`/circulars/circular/${circularId}/approve-review`, by ? { by } : {});
     return res.data;
   },
 

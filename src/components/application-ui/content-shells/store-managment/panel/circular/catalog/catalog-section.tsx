@@ -9,7 +9,8 @@ import { Box, Button, LinearProgress, Stack, Tooltip, Typography } from '@mui/ma
 import { useCallback, useDeferredValue, useMemo, useState } from 'react';
 import { PanelCard, SectionHeader } from '../../../panel-kit';
 import { buildUpcomingSummary, isGeneratingImage, missingRegularOf } from '../domain/catalog';
-import { useCatalogSummary } from '../hooks';
+import { pickTodayAndNext } from '../domain/circulars';
+import { useCatalogSummary, useStoreCirculars } from '../hooks';
 import type { MoreMenuItem } from '../panelUi';
 import { PasteReplaceDialog, ProductEditorDialog } from '../ProductImageTools';
 import { ImagePreviewDialog } from '../shared';
@@ -44,6 +45,7 @@ import {
   useSyncVisibility,
 } from './use-catalog-mutations';
 import { useRowPaste } from './use-row-paste';
+import { ValidityBar } from './validity-bar';
 
 type Dialog = 'clear' | 'sync' | 'rescan' | 'details' | null;
 
@@ -55,9 +57,18 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
   const [chosenShow, setShow] = useState<CatalogShow | null>(null);
   const deferredSearch = useDeferredValue(search);
   const ruling = useCatalogSummary(storeSlug).data?.ruling ?? null;
-  const show: CatalogShow = chosenShow ?? (ruling ? 'ruling' : 'all');
+  // Sin elegir filtro: lo del flyer que manda, o si no hay, "vigentes y próximos" (nunca
+  // lo vencido). Buscando sin filtro elegido se busca en TODO, vencidos incluidos.
+  const show: CatalogShow =
+    chosenShow ?? (deferredSearch.trim() ? 'all' : ruling ? 'ruling' : 'current');
   const catalog = useCatalogPage(storeSlug, page, deferredSearch, show, ruling?.id);
   const reviewCount = useReviewCount(storeSlug);
+  // Vigencia (qué rige hoy y qué viene): la manejan los agentes, acá sólo se muestra.
+  const circs = useStoreCirculars(storeSlug);
+  const validity = useMemo(
+    () => pickTodayAndNext([...circs.items, ...circs.flyers], Date.now()),
+    [circs.items, circs.flyers]
+  );
   // Prender un producto pide confirmación (Revisar y publicar); apagarlo es inmediato.
   const [toShow, setToShow] = useState<StoreProduct | null>(null);
   const categoryOptions = useCategoryOptions(storeSlug);
@@ -205,6 +216,10 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
             hasta que lo publiques. Revisa y corrige en la misma fila (nombre, precios, categoría)
             comparando con el flyer, y después <strong>Publicar</strong>. {PASTE_HINT}
           </Typography>
+          <ValidityBar
+            current={validity.current}
+            next={validity.next}
+          />
           {ruling && (
             <RulingBar
               ruling={ruling}
@@ -262,10 +277,15 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
                     title: 'Nada coincide con la búsqueda.',
                     hint: 'Prueba con otro nombre o marca.',
                   }
-                : {
-                    title: 'Sin productos en el catálogo.',
-                    hint: 'Carga un circular o usa "+ Agregar producto" para empezar.',
-                  }
+                : show === 'current' || show === 'ruling'
+                  ? {
+                      title: 'No hay productos vigentes ni próximos.',
+                      hint: 'Lo de flyers vencidos no se muestra. Búscalo arriba o elige "Todo el catálogo". Si falta el flyer que viene, revisa que su arte se haya leído (Reintentar en el aviso).',
+                    }
+                  : {
+                      title: 'Sin productos en el catálogo.',
+                      hint: 'Carga un circular o usa "+ Agregar producto" para empezar.',
+                    }
             }
             page={page}
             pages={pages}

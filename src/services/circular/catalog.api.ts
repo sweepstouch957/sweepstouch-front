@@ -32,7 +32,7 @@ export const catalogApi = {
       circularId?: string;
       when?: 'live' | 'next';
       /** Panel: sólo visibles, sólo ocultos o sólo los que esperan fecha. */
-      show?: 'visible' | 'hidden' | 'pending' | 'review';
+      show?: 'visible' | 'hidden' | 'pending' | 'review' | 'current';
     }
   ): Promise<{
     storeSlug: string;
@@ -52,9 +52,11 @@ export const catalogApi = {
           ? { pending: 'true' }
           : opts?.show === 'review'
             ? { review: 'true' }
-            : opts?.show
-              ? { visible: String(opts.show === 'visible') }
-              : {}),
+            : opts?.show === 'current'
+              ? { current: 'true' }
+              : opts?.show
+                ? { visible: String(opts.show === 'visible') }
+                : {}),
         // Panel por fuente: sólo los productos de ese flyer/circular (vigente o programado).
         ...(opts?.circularId ? { circularId: opts.circularId, when: opts.when || 'live' } : {}),
       },
@@ -124,8 +126,12 @@ export const catalogApi = {
         | 'presentation'
         | 'saleUnit'
         | 'barcode'
+        | 'packQty'
+        | 'packUnit'
+        | 'counterOnly'
+        | 'department'
       >
-    >
+    > & { editedBy?: string }
   ): Promise<{ ok: boolean; item: StoreProduct }> {
     const res = await api.patch(`/circulars/store-product/${id}`, patch);
     return res.data;
@@ -188,7 +194,8 @@ export const catalogApi = {
    *  resto. Sin flyer vigente (`circularId` null) oculta lo que vino de un flyer vencido. */
   async syncVisibility(
     storeSlug: string,
-    only?: 'flyer' | 'circular'
+    only?: 'flyer' | 'circular',
+    by?: string
   ): Promise<{
     ok: boolean;
     circularId: string | null;
@@ -200,7 +207,7 @@ export const catalogApi = {
     duplicates?: number;
     duplicateExamples?: string[];
   }> {
-    const res = await api.post(`/circulars/store/${storeSlug}/sync-visibility`, null, {
+    const res = await api.post(`/circulars/store/${storeSlug}/sync-visibility`, by ? { by } : null, {
       params: only ? { only } : {},
     });
     return res.data;

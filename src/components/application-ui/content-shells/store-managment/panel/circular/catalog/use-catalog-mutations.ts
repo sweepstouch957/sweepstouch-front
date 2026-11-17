@@ -2,6 +2,7 @@
 
 /** Escrituras del catálogo: cada una con su toast y sus invalidaciones. */
 import { circularService, type StoreProduct } from '@/services/circular';
+import { useAuth } from '@/hooks/use-auth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -9,6 +10,12 @@ import { regularFromPrice } from '../domain/prices';
 import { circularKeys } from '../query-keys';
 import type { PendingPatch, ProductPatch, SourceKind } from './constants';
 import { plural } from './utils';
+
+/** Nombre de quien edita: los agentes aprenden de esa persona y lo dicen en la bitácora. */
+function useEditorName() {
+  const { user } = useAuth();
+  return [user?.firstName, user?.lastName].filter(Boolean).join(' ');
+}
 
 const apiError = (e: any, fallback: string) => e?.response?.data?.error || fallback;
 
@@ -24,9 +31,10 @@ export function useRefreshCatalog(storeSlug: string) {
 /** Edición en línea de las filas. Callbacks estables: las filas son memo. */
 export function useProductPatches(storeSlug: string) {
   const qc = useQueryClient();
+  const editedBy = useEditorName();
   const { mutate: patchMutate } = useMutation({
     mutationFn: ({ id, body }: { id: string; body: ProductPatch }) =>
-      circularService.updateStoreProduct(id, body),
+      circularService.updateStoreProduct(id, { ...body, ...(editedBy ? { editedBy } : {}) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: circularKeys.catalog(storeSlug) }),
     onError: (e: any) => toast.error(apiError(e, 'No se pudo guardar')),
   });
@@ -147,8 +155,9 @@ export function useClearCatalog(storeSlug: string) {
 /** El botón inteligente: visibles = SOLO los productos del último circular. */
 export function useSyncVisibility(storeSlug: string) {
   const qc = useQueryClient();
+  const by = useEditorName();
   return useMutation({
-    mutationFn: (only: SourceKind) => circularService.syncVisibility(storeSlug, only),
+    mutationFn: (only: SourceKind) => circularService.syncVisibility(storeSlug, only, by),
     onSuccess: (d, only) => {
       toast.success(
         d.circularId
