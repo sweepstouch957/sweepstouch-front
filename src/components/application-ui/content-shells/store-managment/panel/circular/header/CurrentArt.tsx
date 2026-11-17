@@ -162,7 +162,8 @@ function Piece({
     </>
   );
   const sx = {
-    display: 'flex',
+    // En el teléfono una pieza vacía ("Sin circular vigente") no ocupa lugar.
+    display: { xs: empty ? 'none' : 'flex', sm: 'flex' },
     alignItems: 'center',
     gap: 1.25,
     p: 0.75,
@@ -221,7 +222,7 @@ function CurrentArt({
         flexWrap="wrap"
         alignItems="center"
         gap={1}
-        sx={{ px: { xs: 2, md: 2.5 }, pb: 1.5 }}
+        sx={{ px: { xs: 2, md: 2.5 }, pb: { xs: 0.75, sm: 1.5 } }}
       >
         <Piece
           kind="Circular vigente"

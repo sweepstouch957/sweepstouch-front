@@ -205,12 +205,14 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
           }
         />
         <Stack
-          gap={1.5}
-          sx={{ px: 2.25, py: 1.75 }}
+          gap={{ xs: 1, sm: 1.5 }}
+          sx={{ px: { xs: 1.5, sm: 2.25 }, py: { xs: 1, sm: 1.75 } }}
         >
+          {/* En el teléfono no va: la lista tiene que empezar ya (la ayuda está en Tutorial). */}
           <Typography
             variant="body2"
             color="text.secondary"
+            sx={{ display: { xs: 'none', sm: 'block' } }}
           >
             Lo que trae un flyer nuevo queda <strong>Por revisar</strong> y el cliente no lo ve
             hasta que lo publiques. Revisa y corrige en la misma fila (nombre, precios, categoría)

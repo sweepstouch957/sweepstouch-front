@@ -38,7 +38,7 @@ function Row({
         flex: '1 1 260px',
         minWidth: 0,
         px: 1.5,
-        py: 1,
+        py: { xs: 0.5, sm: 1 },
         borderRadius: 2,
         bgcolor: (t) => alpha(t.palette[tone].main, 0.08),
         border: (t) => `1px solid ${alpha(t.palette[tone].main, 0.25)}`,
@@ -122,6 +122,7 @@ export function ValidityBar({
             <Typography
               variant="body2"
               color="text.secondary"
+              sx={{ display: { xs: 'none', sm: 'block' } }}
             >
               Los clientes no ven ofertas hasta que entre un flyer o circular.
             </Typography>
