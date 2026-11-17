@@ -11,6 +11,7 @@ import CircularTab from './circular-tab';
 import FlyerFab from './header/FlyerFab';
 import PanelHeader from './header/PanelHeader';
 import { type PanelTab } from './header/tabs';
+import TutorialFab from './help/TutorialFab';
 import { useUpcomingCount } from './hooks';
 import { type PanelProps } from './shared';
 
@@ -104,6 +105,7 @@ export default function StoreCircularPanel({
         storeId={storeId}
         storeSlug={storeSlug}
       />
+      <TutorialFab tab={tab} />
       {tab === 'lists' && <ListsSection storeSlug={storeSlug} />}
       {tab === 'postcard' && <PostcardSection storeSlug={storeSlug} />}
       {tab === 'purchases' && <PurchasesSection storeSlug={storeSlug} />}
