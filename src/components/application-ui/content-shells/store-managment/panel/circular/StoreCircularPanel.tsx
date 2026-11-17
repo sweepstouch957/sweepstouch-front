@@ -103,6 +103,7 @@ export default function StoreCircularPanel({
       <FlyerFab
         storeId={storeId}
         storeSlug={storeSlug}
+        upcoming={tab === 'upcoming'}
       />
       {tab === 'lists' && <ListsSection storeSlug={storeSlug} />}
       {tab === 'postcard' && <PostcardSection storeSlug={storeSlug} />}

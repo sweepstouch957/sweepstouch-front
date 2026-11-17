@@ -22,7 +22,8 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { isFlyer, pickTodayAndNext } from '../domain/circulars';
 import { useCircularPreview, useLastCampaignArt, useStoreCirculars } from '../hooks';
 import { ImagePreviewDialog } from '../shared';
 import { useCircularThumb } from './use-circular-thumb';
@@ -97,9 +98,24 @@ function Choice({
   );
 }
 
-export default function FlyerFab({ storeId, storeSlug }: { storeId: string; storeSlug: string }) {
+export default function FlyerFab({
+  storeId,
+  storeSlug,
+  upcoming = false,
+}: {
+  storeId: string;
+  storeSlug: string;
+  /** En "Próximas ofertas": abre el flyer/circular que VIENE, no el de hoy. */
+  upcoming?: boolean;
+}) {
   const flyer = useLastCampaignArt(storeId);
-  const circular = useStoreCirculars(storeSlug).current;
+  const circs = useStoreCirculars(storeSlug);
+  const circular = circs.current;
+  // Lo primero que arranca más adelante (flyer de campaña o circular semanal).
+  const next = useMemo(
+    () => (upcoming ? pickTodayAndNext([...circs.items, ...circs.flyers], Date.now()).next : null),
+    [upcoming, circs.items, circs.flyers]
+  );
   const circularThumb = useCircularThumb(circular);
   const [img, setImg] = useState<{ url: string; title: string } | null>(null);
   const [choose, setChoose] = useState(false);
@@ -109,16 +125,30 @@ export default function FlyerFab({ storeId, storeSlug }: { storeId: string; stor
   const showFlyer = () => setImg({ url: flyer.source || flyer.image, title: flyerTitle });
   const showCircular = () => circular && openCircular.mutate(circular);
   const hasFlyer = !!flyer.image;
-  if (!hasFlyer && !circular) return null;
+  if (!hasFlyer && !circular && !next) return null;
 
-  const both = hasFlyer && !!circular;
-  const label = both ? 'Ver flyer o circular' : hasFlyer ? 'Ver flyer' : 'Ver circular';
+  const both = !next && hasFlyer && !!circular;
+  const label = next
+    ? `Ver próximo ${isFlyer(next) ? 'flyer' : 'circular'}`
+    : both
+      ? 'Ver flyer o circular'
+      : hasFlyer
+        ? 'Ver flyer'
+        : 'Ver circular';
 
   return (
     <>
       <Fab
         variant="extended"
-        onClick={() => (both ? setChoose(true) : hasFlyer ? showFlyer() : showCircular())}
+        onClick={() =>
+          next
+            ? openCircular.mutate(next)
+            : both
+              ? setChoose(true)
+              : hasFlyer
+                ? showFlyer()
+                : showCircular()
+        }
         disabled={openCircular.isPending}
         aria-label={label}
         sx={{
