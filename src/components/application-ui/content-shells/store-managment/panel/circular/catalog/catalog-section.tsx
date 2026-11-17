@@ -57,10 +57,13 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
   const [chosenShow, setShow] = useState<CatalogShow | null>(null);
   const deferredSearch = useDeferredValue(search);
   const ruling = useCatalogSummary(storeSlug).data?.ruling ?? null;
-  // Sin elegir filtro: lo del flyer que manda, o si no hay, "vigentes y próximos" (nunca
-  // lo vencido). Buscando sin filtro elegido se busca en TODO, vencidos incluidos.
+  // Siempre abre en "vigentes y próximos" (nunca lo vencido). Al buscar desde ahí (o desde
+  // "Flyer actual") se busca en TODO el catálogo: así aparece también lo que no sale.
+  const searching = !!deferredSearch.trim();
   const show: CatalogShow =
-    chosenShow ?? (deferredSearch.trim() ? 'all' : ruling ? 'ruling' : 'current');
+    searching && (!chosenShow || chosenShow === 'current' || chosenShow === 'ruling')
+      ? 'all'
+      : chosenShow ?? 'current';
   const catalog = useCatalogPage(storeSlug, page, deferredSearch, show, ruling?.id);
   const reviewCount = useReviewCount(storeSlug);
   // Vigencia (qué rige hoy y qué viene): la manejan los agentes, acá sólo se muestra.

@@ -54,6 +54,7 @@ function Thumb({
   const has = !!p.imageUrl;
   return (
     <Box
+      className="catalog-thumb"
       component={has ? 'button' : 'div'}
       type={has ? 'button' : undefined}
       aria-label={has ? `Ver imagen de ${p.name} en grande` : undefined}

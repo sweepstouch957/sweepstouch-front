@@ -95,12 +95,15 @@ function tableSx(width: number): SxProps<Theme> {
             display: 'grid',
             position: 'relative',
             columnGap: 1,
-            rowGap: 0.5,
-            py: 1,
+            rowGap: 0.25,
+            py: 0.5,
             ...(width <= 420
               ? {
-                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                  gridTemplateAreas: '"img prod" "of reg" "sav cat" "prom vis"',
+                  // Teléfono: foto angosta + producto ancho, los 3 precios en una fila y
+                  // categoría + switches en otra (antes eran 4 filas con media tarjeta vacía).
+                  gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
+                  gridTemplateAreas:
+                    '"img img prod prod prod prod" "of of reg reg sav sav" "cat cat prom prom vis vis"',
                 }
               : {
                   gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
@@ -113,7 +116,45 @@ function tableSx(width: number): SxProps<Theme> {
                   borderRadius: 2,
                   bgcolor: 'background.paper',
                 }
-              : { borderBottom: '1px solid', borderColor: 'divider' }),
+              : {
+                  // Teléfono: cada producto es una tarjeta suelta, no un renglón con raya.
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 3,
+                  bgcolor: 'background.paper',
+                  boxShadow: '0 1px 2px rgba(15,23,42,.05)',
+                  mx: 1,
+                  my: 1,
+                  p: 0.75,
+                }),
+          },
+          // Foto más grande en tarjeta.
+          '& .catalog-thumb': { width: 60, height: 60, borderRadius: 2 },
+          // Los tres precios como fichas: oferta resaltada, regular tachado, ahorro en verde.
+          '& tbody tr > td:nth-of-type(3), & tbody tr > td:nth-of-type(4), & tbody tr > td:nth-of-type(5)':
+            {
+              bgcolor: 'action.hover',
+              borderRadius: 2,
+              py: 0.5,
+              px: 1,
+            },
+          '& tbody tr > td:nth-of-type(3) input': {
+            fontWeight: 800,
+            fontSize: 17,
+            color: 'primary.main',
+          },
+          '& tbody tr > td:nth-of-type(4) input': {
+            textDecoration: 'line-through',
+            color: 'text.secondary',
+          },
+          '& tbody tr > td:nth-of-type(5) input': { fontWeight: 700, color: 'success.main' },
+          // Switches: etiqueta y switch centrados, pegados.
+          '& tbody tr > td:nth-of-type(7), & tbody tr > td:nth-of-type(8)': {
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            py: 0.25,
           },
           '& tbody tr > td': {
             display: 'block',
@@ -134,9 +175,11 @@ function tableSx(width: number): SxProps<Theme> {
           '& tbody td[data-label]::before': {
             content: 'attr(data-label)',
             display: 'block',
-            mb: 0.5,
-            fontSize: 11,
-            fontWeight: 600,
+            mb: 0.25,
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: '0.05em',
+            textTransform: 'uppercase',
             color: 'text.secondary',
           },
           '& tbody td[colspan]': { gridColumn: '1 / -1' },

@@ -135,6 +135,7 @@ export function ProductCell({
           value={p.brand ?? ''}
           placeholder="marca"
           ariaLabel="Marca"
+          width={96}
           tip="Marca tal como sale en el flyer (Goya, Mazola…)"
           onSave={(brand) => onPatch(p._id, { brand })}
         />
@@ -142,6 +143,7 @@ export function ProductCell({
           value={p.size ?? ''}
           placeholder={p.unit ? `por ${p.unit}` : 'tamaño'}
           ariaLabel="Tamaño"
+          width={88}
           tip="Tamaño o peso del paquete (16 oz, 1 gal, 5 lb)"
           onSave={(size) => onPatch(p._id, { size })}
         />
@@ -159,6 +161,7 @@ export function ProductCell({
           value={p.offerCondition ?? ''}
           placeholder="letra chica"
           ariaLabel="Letra chica"
+          width={104}
           tip='Condición de la oferta que imprime el flyer: "2 for $5", "with $20 purchase", "limit 1"'
           onSave={(offerCondition) => onPatch(p._id, { offerCondition })}
         />
