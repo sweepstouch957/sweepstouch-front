@@ -20,7 +20,7 @@ function load(relative) {
   return compiled.exports;
 }
 
-const { warehouseImeis, toggleImei, movementReason } = load('src/app/admin/management/support/materials/materials-movement-utils.ts');
+const { warehouseImeis, toggleImei, movementReason, assertOutgoingEquipment } = load('src/app/admin/management/support/materials/materials-movement-utils.ts');
 
 test('warehouse options exclude installed, damaged and non-tablet equipment', () => {
   const equipment = [
@@ -59,4 +59,22 @@ test('Otro requires a custom reason and sends the entered text instead of the la
   assert.throws(() => movementReason('Otro', '  '), /Escribe el motivo/);
   assert.equal(movementReason('Instalación nueva', 'Texto anterior'), 'Instalación nueva');
   assert.throws(() => movementReason('', ''), /Selecciona el motivo/);
+});
+
+test('an installed IMEI is rejected, including another shipment to the same store', () => {
+  const items = [{ m: 'tablet', q: 1, series: [{ v: '001234567890123' }] }];
+  const unit = { m: 'tablet', v: '001234567890123', estado: 'tienda', tiendaId: 'shop-1' };
+  assert.throws(() => assertOutgoingEquipment(items, [unit], [{ id: 'shop-1', nombre: 'Key Food' }]), /ya está instalado en Key Food/);
+});
+
+test('an IMEI becomes available for another shipment after returning to the warehouse', () => {
+  const items = [{ m: 'tablet', q: 1, series: [{ v: '001234567890123' }] }];
+  assert.doesNotThrow(() => assertOutgoingEquipment(items, [{ m: 'tablet', v: '001234567890123', estado: 'bodega' }], []));
+});
+
+test('unknown and damaged serials cannot be shipped, but quantity-only materials still work', () => {
+  const items = [{ m: 'tablet', q: 1, series: [{ v: '001234567890123' }] }];
+  assert.throws(() => assertOutgoingEquipment(items, [], []), /entrada registrada/);
+  assert.throws(() => assertOutgoingEquipment(items, [{ m: 'tablet', v: '001234567890123', estado: 'danado' }], []), /dañado/);
+  assert.doesNotThrow(() => assertOutgoingEquipment([{ m: 'cable', q: 1 }], [], []));
 });

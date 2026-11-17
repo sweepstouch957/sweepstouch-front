@@ -1,4 +1,4 @@
-import type { Equipment } from '@/services/material-control.service';
+import type { Equipment, MaterialStore, MovementItem } from '@/services/material-control.service';
 import { parseSeries } from './materials-utils';
 
 export function warehouseImeis(equipment: Equipment[], materialId: string) {
@@ -32,4 +32,33 @@ export function movementReason(reason: string, otherReason: string) {
         : 'Selecciona el motivo del movimiento.'
     );
   return value;
+}
+
+export function assertOutgoingEquipment(
+  items: MovementItem[],
+  equipment: Equipment[],
+  stores: MaterialStore[]
+) {
+  const key = (material: string, value: string) =>
+    JSON.stringify([material, value.replace(/[^0-9A-Za-z]/g, '').toUpperCase()]);
+  const bySerial = new Map(equipment.map((row) => [key(row.m, row.v), row]));
+  const storeNames = new Map(stores.map((store) => [store.id, store.nombre]));
+  for (const item of items)
+    for (const serial of item.series || []) {
+      const unit = bySerial.get(key(item.m, serial.v));
+      if (unit?.estado === 'tienda') {
+        const store = storeNames.get(unit.tiendaId || '') || unit.tienda?.nombre || 'una tienda';
+        throw new Error(
+          `El IMEI/SIM ${serial.v} ya está instalado en ${store}. No se puede registrar otra salida, aunque sea a la misma tienda. Registra primero su retiro a bodega.`
+        );
+      }
+      if (unit?.estado === 'danado')
+        throw new Error(
+          `El IMEI/SIM ${serial.v} está marcado como dañado y no está disponible para salida.`
+        );
+      if (!unit || unit.estado !== 'bodega')
+        throw new Error(
+          `El IMEI/SIM ${serial.v} no tiene una entrada registrada en bodega. Registra la entrada antes de realizar una salida.`
+        );
+    }
 }

@@ -21,7 +21,7 @@ import { useMemo, useRef, useState, type FormEvent } from 'react';
 import { panelDivider } from 'src/components/application-ui/content-shells/store-managment/panel-kit';
 import { ButtonSoft } from 'src/components/base/styles/button-soft';
 import { useMaterials } from './materials-context';
-import { movementReason } from './materials-movement-utils';
+import { assertOutgoingEquipment, movementReason } from './materials-movement-utils';
 import { grid3, rowLayout, Section } from './materials-shared';
 import { MaterialStoreSearch } from './materials-store-search';
 import {
@@ -108,7 +108,20 @@ export function MovementView({
       return;
     }
     await write(
-      () => api.createMovement(payload),
+      async () => {
+        if (payload.tipo === 'salida') {
+          const serializedMaterials = [
+            ...new Set(payload.items.filter((item) => item.series?.length).map((item) => item.m)),
+          ];
+          const equipment = await Promise.all(
+            serializedMaterials.map((material) =>
+              api.collectPages((page) => api.getEquipment({ material, page, limit: 200 }))
+            )
+          );
+          assertOutgoingEquipment(payload.items, equipment.flat(), stores);
+        }
+        return api.createMovement(payload);
+      },
       'Movimiento guardado.',
       () => {
         setForm((current) => ({ ...current, note: '', otherReason: '' }));
