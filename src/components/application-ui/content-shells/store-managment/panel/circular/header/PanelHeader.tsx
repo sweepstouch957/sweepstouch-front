@@ -8,6 +8,7 @@
 import { Box, Chip, Stack, Tab, Tabs, Typography } from '@mui/material';
 import { memo } from 'react';
 import { PanelCard } from '../../../panel-kit';
+import TutorialButton from '../help/TutorialButton';
 import PreRcsPreviewButton from '../preview';
 import CurrentArt from './CurrentArt';
 import { groupOf, PANEL_GROUPS, type PanelTab } from './tabs';
@@ -93,11 +94,19 @@ function PanelHeader({
             />
           </Stack>
         </Box>
-        {/* Ver la página tal cual la recibe el cliente. */}
-        <PreRcsPreviewButton
-          storeId={storeId}
-          storeSlug={storeSlug}
-        />
+        <Stack
+          direction="row"
+          alignItems="center"
+          gap={0.5}
+        >
+          {/* Guías paso a paso de la pestaña abierta. */}
+          <TutorialButton tab={tab} />
+          {/* Ver la página tal cual la recibe el cliente. */}
+          <PreRcsPreviewButton
+            storeId={storeId}
+            storeSlug={storeSlug}
+          />
+        </Stack>
       </Stack>
 
       {/* Circular y flyer vigentes: se ven desde cualquier pestaña. */}

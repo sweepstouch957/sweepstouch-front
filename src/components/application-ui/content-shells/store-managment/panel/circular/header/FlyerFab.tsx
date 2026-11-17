@@ -118,31 +118,29 @@ export default function FlyerFab({ storeId, storeSlug }: { storeId: string; stor
     <>
       <Fab
         variant="extended"
-        color="secondary"
-        size="large"
         onClick={() => (both ? setChoose(true) : hasFlyer ? showFlyer() : showCircular())}
         disabled={openCircular.isPending}
         aria-label={label}
         sx={{
           position: 'fixed',
           // A la izquierda del botón del bot (que vive abajo a la derecha), en todo tamaño.
-          right: { xs: 84, sm: 104 },
-          bottom: { xs: 20, sm: 30 },
+          right: { xs: 88, sm: 116 },
+          // Centrado en vertical con el botón del bot.
+          bottom: { xs: 26, sm: 38 },
           zIndex: (t) => t.zIndex.modal - 1,
-          height: { xs: 52, sm: 60 },
-          px: { xs: 2, sm: 3 },
-          fontSize: { xs: 15, sm: 17 },
-          fontWeight: 800,
+          height: 44,
+          px: 2,
+          fontSize: 14,
+          fontWeight: 700,
+          letterSpacing: 0,
           textTransform: 'none',
-          boxShadow: 8,
-          // Brillo al aparecer, para que se note la primera vez (sin animación si el
-          // sistema pide menos movimiento).
-          animation: 'flyerFabPulse 1.6s ease-out 0.4s 3',
-          '@keyframes flyerFabPulse': {
-            '0%': { boxShadow: '0 0 0 0 rgba(236,72,153,.55)' },
-            '100%': { boxShadow: '0 0 0 18px rgba(236,72,153,0)' },
-          },
-          '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
+          bgcolor: 'background.paper',
+          color: 'text.primary',
+          border: '1px solid',
+          borderColor: 'divider',
+          boxShadow: '0 6px 20px rgba(15,23,42,.12)',
+          '&:hover': { bgcolor: 'background.paper', borderColor: 'primary.main' },
+          '& .MuiSvgIcon-root': { color: 'primary.main', fontSize: 20 },
         }}
       >
         {openCircular.isPending ? (

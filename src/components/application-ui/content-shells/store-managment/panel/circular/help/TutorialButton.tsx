@@ -1,17 +1,17 @@
 'use client';
 
 /**
- * Botón flotante "Ver tutorial" + modal de ayudas: a la izquierda las tareas, a la derecha
+ * Botón "Tutorial" de la cabecera + modal de ayudas: a la izquierda las tareas, a la derecha
  * los pasos (y el video de la guía cuando exista). Abre en la guía de la pestaña actual.
  */
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import HelpOutlineRoundedIcon from '@mui/icons-material/HelpOutlineRounded';
 import {
   Box,
+  Button,
   Dialog,
   DialogContent,
   DialogTitle,
-  Fab,
   IconButton,
   List,
   ListItemButton,
@@ -25,7 +25,7 @@ import { useState } from 'react';
 import type { PanelTab } from '../header/tabs';
 import { tutorialFor, TUTORIALS } from './tutorials';
 
-export default function TutorialFab({ tab }: { tab: PanelTab }) {
+export default function TutorialButton({ tab }: { tab: PanelTab }) {
   // null = cerrado; si no, el id de la guía abierta.
   const [openId, setOpenId] = useState<string | null>(null);
   const fullScreen = useMediaQuery(useTheme().breakpoints.down('sm'));
@@ -33,26 +33,22 @@ export default function TutorialFab({ tab }: { tab: PanelTab }) {
 
   return (
     <>
-      <Fab
-        variant="extended"
-        color="primary"
+      <Button
+        variant="text"
+        size="small"
+        color="inherit"
+        startIcon={<HelpOutlineRoundedIcon />}
         onClick={() => setOpenId(tutorialFor(tab).id)}
-        aria-label="Ver tutorial"
         sx={{
-          position: 'fixed',
-          // Encima del botón "Ver flyer o circular".
-          right: { xs: 84, sm: 104 },
-          bottom: { xs: 82, sm: 100 },
-          zIndex: (t) => t.zIndex.modal - 1,
-          height: { xs: 44, sm: 48 },
-          fontSize: { xs: 14, sm: 15 },
-          fontWeight: 800,
           textTransform: 'none',
+          fontWeight: 700,
+          borderRadius: 999,
+          whiteSpace: 'nowrap',
+          color: 'text.secondary',
         }}
       >
-        <HelpOutlineRoundedIcon sx={{ mr: 1 }} />
-        Ver tutorial
-      </Fab>
+        Tutorial
+      </Button>
 
       <Dialog
         open={!!guide}
