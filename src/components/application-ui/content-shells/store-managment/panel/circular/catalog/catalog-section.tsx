@@ -25,7 +25,6 @@ import { PAGE_SIZE, PASTE_HINT, type CatalogShow } from './constants';
 import { DeleteProductDialog } from './delete-product-dialog';
 import { FillDetailsDialog } from './fill-details-dialog';
 import { RescanPhotosDialog } from './rescan-photos-dialog';
-import { RulingBar } from './ruling-bar';
 import { SyncVisibilityDialog } from './sync-visibility-dialog';
 import {
   useCatalogPage,
@@ -33,7 +32,7 @@ import {
   useEditorSources,
   useReviewCount,
 } from './use-catalog-data';
-import { useFillDetails, useOpenRuling, useRescanPhotos } from './use-catalog-jobs';
+import { useFillDetails, useRescanPhotos } from './use-catalog-jobs';
 import {
   useCleanImages,
   useClearCatalog,
@@ -56,7 +55,8 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
   // productos viejos) confundía a quien valida. "Todo el catálogo" sigue a un clic.
   const [chosenShow, setShow] = useState<CatalogShow | null>(null);
   const deferredSearch = useDeferredValue(search);
-  const ruling = useCatalogSummary(storeSlug).data?.ruling ?? null;
+  const summary = useCatalogSummary(storeSlug).data;
+  const ruling = summary?.ruling ?? null;
   // Siempre abre en "vigentes y próximos" (nunca lo vencido). Al buscar desde ahí (o desde
   // "Flyer actual") se busca en TODO el catálogo: así aparece también lo que no sale.
   const searching = !!deferredSearch.trim();
@@ -112,7 +112,6 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
     (url: string, title: string) => setImgPreview({ url, title }),
     []
   );
-  const openRuling = useOpenRuling(ruling, openPreview);
   const rescan = useRescanPhotos(storeSlug, ruling);
   const details = useFillDetails(storeSlug);
 
@@ -201,7 +200,7 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
                 {syncVisibility.isPending
                   ? 'Publicando…'
                   : reviewCount
-                    ? `Publicar (${reviewCount} por revisar)`
+                    ? `Publicar ${reviewCount} cambio${reviewCount === 1 ? '' : 's'}`
                     : 'Publicar'}
               </Button>
             </Tooltip>
@@ -224,18 +223,8 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
           <ValidityBar
             current={validity.current}
             next={validity.next}
+            count={ruling?.uniqueProducts}
           />
-          {ruling && (
-            <RulingBar
-              ruling={ruling}
-              opening={openRuling.isPending}
-              rescanning={rescan.running}
-              rescanBusy={rescan.start.isPending}
-              rescanProgress={rescan.progress}
-              onOpen={() => openRuling.mutate()}
-              onRescan={() => rescan.start.mutate('flyer')}
-            />
-          )}
           <CatalogToolbar
             search={search}
             onSearch={(v) => {
@@ -334,6 +323,8 @@ export default function CatalogSection({ storeSlug }: { storeSlug: string }) {
         open={dialog === 'sync'}
         busy={syncVisibility.isPending}
         pendingReview={reviewCount}
+        ruling={ruling}
+        visibleNow={summary?.visible}
         onClose={closeDialog}
         onSync={(only) => syncVisibility.mutate(only, { onSuccess: closeDialog })}
       />

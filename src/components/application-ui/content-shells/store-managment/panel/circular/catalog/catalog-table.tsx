@@ -69,6 +69,13 @@ function tableSx(width: number): SxProps<Theme> {
     // y dejaban cada celda al 12% de su columna → texto en vertical en tablet/mobile.
     ...(width > 900
       ? {
+          '& thead th': {
+            position: 'sticky',
+            top: 0,
+            zIndex: 3,
+            bgcolor: 'background.paper',
+            boxShadow: (t: Theme) => `inset 0 -1px 0 ${t.palette.divider}`,
+          },
           '& tr > :nth-child(1)': { width: 116 },
           '& tr > :nth-child(2)': { width: '23%' },
           '& tr > :nth-child(3), & tr > :nth-child(4)': { width: '12%' },
@@ -219,7 +226,17 @@ export function CatalogTable({
   return (
     <Box
       ref={ref}
-      sx={{ minWidth: 0, width: '100%' }}
+      sx={{
+        minWidth: 0,
+        width: '100%',
+        // Modo tabla: los productos se deslizan dentro de este marco y los títulos de las
+        // columnas quedan fijos arriba (quien edita siempre sabe qué columna toca).
+        // El hueco de la barra se reserva siempre: si apareciera sólo en modo tabla, el ancho
+        // medido saltaría entre tabla y tarjetas.
+        overflowY: 'auto',
+        scrollbarGutter: 'stable',
+        ...(width > 900 ? { maxHeight: 'calc(100vh - 96px)' } : {}),
+      }}
     >
       <DragDropContext
         onDragEnd={onDragEnd}
