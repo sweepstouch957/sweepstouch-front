@@ -4,6 +4,7 @@
  * Publicar (Revisar y publicar): lo del flyer o circular que manda hoy pasa a verse en las
  * listas y el resto se oculta. Pide confirmar que se revisó, porque desde ahí lo ve el cliente.
  */
+import type { CatalogSummary } from '@/services/circular';
 import {
   Alert,
   Button,
@@ -17,12 +18,15 @@ import {
   Typography,
 } from '@mui/material';
 import { useState } from 'react';
+import { fmtDate } from '../shared';
 import type { SourceKind } from './constants';
 
 export function SyncVisibilityDialog({
   open,
   busy,
   pendingReview = 0,
+  ruling,
+  visibleNow,
   onClose,
   onSync,
 }: {
@@ -30,6 +34,10 @@ export function SyncVisibilityDialog({
   busy: boolean;
   /** Productos "Por revisar" que se van a publicar. */
   pendingReview?: number;
+  /** La pieza que manda hoy (lo que se publica). */
+  ruling?: CatalogSummary['ruling'] | null;
+  /** Productos que el cliente ve ahora mismo. */
+  visibleNow?: number;
   onClose: () => void;
   onSync: (only: SourceKind) => void;
 }) {
@@ -51,20 +59,31 @@ export function SyncVisibilityDialog({
     >
       <DialogTitle fontWeight={800}>Publicar en las listas de los clientes</DialogTitle>
       <DialogContent>
-        <Typography
-          variant="body2"
-          sx={{ mb: 1.5 }}
+        {/* Qué se va a subir, con números. */}
+        <Stack
+          component="ul"
+          gap={0.5}
+          sx={{ pl: 2.5, mt: 0, mb: 1.5, fontSize: 14 }}
         >
-          Se muestran <strong>sólo</strong> los productos del último flyer de campaña o del último
-          circular semanal (tú eliges), y el resto del catálogo se oculta.
-          {pendingReview > 0 && (
-            <>
-              {' '}
-              Hay <strong>{pendingReview}</strong> producto{pendingReview === 1 ? '' : 's'} por
-              revisar que quedarán visibles.
-            </>
+          <li>
+            <strong>
+              {pendingReview} cambio{pendingReview === 1 ? '' : 's'}
+            </strong>{' '}
+            por revisar (productos nuevos o con precio nuevo) pasan a verse en las listas.
+          </li>
+          {ruling && (
+            <li>
+              Queda publicado <strong>{ruling.title}</strong>: {ruling.uniqueProducts} productos,
+              vigente hasta el {fmtDate(ruling.endDate)}.
+            </li>
           )}
-        </Typography>
+          {visibleNow != null && (
+            <li>
+              Hoy los clientes ven <strong>{visibleNow}</strong> producto
+              {visibleNow === 1 ? '' : 's'}. Lo que no sea de esta pieza se oculta.
+            </li>
+          )}
+        </Stack>
         <Alert
           severity="warning"
           sx={{ mb: 1.5 }}
@@ -79,7 +98,7 @@ export function SyncVisibilityDialog({
               onChange={(e) => setOk(e.target.checked)}
             />
           }
-          label="Revisé nombres, precios, fotos y letra chica: todo está correcto"
+          label="Confirmo que esta información está bien: revisé nombres, precios, fotos y letra chica"
         />
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>

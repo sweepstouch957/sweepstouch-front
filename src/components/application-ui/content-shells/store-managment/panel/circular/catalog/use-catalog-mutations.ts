@@ -1,8 +1,8 @@
 'use client';
 
 /** Escrituras del catálogo: cada una con su toast y sus invalidaciones. */
-import { circularService, type StoreProduct } from '@/services/circular';
 import { useAuth } from '@/hooks/use-auth';
+import { circularService, type StoreProduct } from '@/services/circular';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';

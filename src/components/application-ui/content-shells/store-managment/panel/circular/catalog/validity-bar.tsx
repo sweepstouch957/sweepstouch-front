@@ -19,18 +19,20 @@ const fmt = new Intl.DateTimeFormat('es', {
 const range = (c: Circular) =>
   `${fmt.format(new Date(c.startDate))} → ${fmt.format(new Date(c.endDate))}`;
 const what = (c: Circular) => (isFlyer(c) ? 'Flyer' : 'Circular');
-const clean = (t?: string) => String(t || '').replace(/^(Flyer de campaña|Campaña):\s*/i, '');
 
 function Row({
   tone,
   icon,
   label,
   c,
+  count,
 }: {
   tone: 'success' | 'info';
   icon: React.ReactNode;
   label: string;
   c: Circular;
+  /** Productos de la pieza (sólo se conoce para la vigente). */
+  count?: number;
 }) {
   return (
     <Box
@@ -60,16 +62,11 @@ function Row({
         </Typography>
       </Stack>
       <Typography
-        fontWeight={700}
-        noWrap
-      >
-        {clean(c.title)}
-      </Typography>
-      <Typography
         variant="body2"
-        color="text.secondary"
+        fontWeight={600}
       >
         {range(c)}
+        {count ? ` · ${count} productos` : ''}
       </Typography>
     </Box>
   );
@@ -78,9 +75,11 @@ function Row({
 export function ValidityBar({
   current,
   next,
+  count,
 }: {
   current: Circular | null;
   next: Circular | null;
+  count?: number;
 }) {
   return (
     <Tooltip
@@ -98,6 +97,7 @@ export function ValidityBar({
             icon={<EventAvailableRoundedIcon fontSize="small" />}
             label="Vigente ahora"
             c={current}
+            count={count}
           />
         ) : (
           <Box
