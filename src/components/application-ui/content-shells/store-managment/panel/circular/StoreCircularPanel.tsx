@@ -50,7 +50,7 @@ export default function StoreCircularPanel({
   flyerOnly,
   circularPriority,
 }: PanelProps) {
-  const [tab, setTab] = useState<PanelTab>('circular');
+  const [tab, setTab] = useState<PanelTab>('products');
   const openUpcoming = useCallback(() => setTab('upcoming'), []);
   const openProducts = useCallback(() => setTab('products'), []);
   const openAgents = useCallback(() => setTab('agents'), []);

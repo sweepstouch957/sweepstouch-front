@@ -45,12 +45,7 @@ export const PANEL_GROUPS: {
   icon: ReactElement;
   tabs: { id: PanelTab; label: string }[];
 }[] = [
-  {
-    id: 'circular',
-    label: 'Circular',
-    icon: <CalendarMonthRoundedIcon fontSize="small" />,
-    tabs: [{ id: 'circular', label: 'Circular' }],
-  },
+  // Productos primero: es donde se trabaja a diario (revisar y publicar la lista).
   {
     id: 'products',
     label: 'Productos',
@@ -59,6 +54,12 @@ export const PANEL_GROUPS: {
       { id: 'products', label: 'Hoy en la lista' },
       { id: 'upcoming', label: 'Próximas ofertas' },
     ],
+  },
+  {
+    id: 'circular',
+    label: 'Circular',
+    icon: <CalendarMonthRoundedIcon fontSize="small" />,
+    tabs: [{ id: 'circular', label: 'Circular' }],
   },
   {
     id: 'customers',
