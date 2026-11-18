@@ -70,6 +70,12 @@ export async function sendChatMessage(
     userName: string;
     userRole: string;
     model?: 'openai' | 'claude' | 'gemini';
+    /** Versión concreta sólo para este mensaje (si falta, la del AIConfig). */
+    modelVersion?: string;
+    /** Pantalla donde está la persona: la ve el modelo, no se guarda en el historial. */
+    pageContext?: string;
+    /** Modo voz: respuesta hablada corta primero y el detalle después de una línea '---'. */
+    voice?: boolean;
     signal?: AbortSignal;
   },
   onText: (text: string) => void,
