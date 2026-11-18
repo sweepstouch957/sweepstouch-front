@@ -377,6 +377,13 @@ export async function transcribeAudio(audioBlob: Blob): Promise<string> {
   return text || '';
 }
 
+/* ─── Voz: texto → audio con voz natural en español ─── */
+
+export async function speakText(text: string, signal?: AbortSignal): Promise<Blob> {
+  const { data } = await api.post('/ai/speak', { text }, { responseType: 'blob', signal });
+  return data;
+}
+
 /* ─── Spotlight Search (one-shot AI query with tool_use) ─── */
 
 export interface AISearchResult {

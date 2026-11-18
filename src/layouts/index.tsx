@@ -1,7 +1,7 @@
 import { useAuth } from '@/hooks/use-auth';
 import useMenuItemsCollapsedShells from '@/hooks/use-routes';
 
-import AiBuddy from '@/components/base/ai-buddy';
+import SweepstouchBot from '@/components/sweepstouch-bot';
 import HubNav from '@/components/base/hub-nav';
 import dynamic from 'next/dynamic';
 import type { FC, ReactNode } from 'react';
@@ -143,7 +143,7 @@ export const Layout: FC<LayoutProps> = withAuthGuard((props) => {
         <HubNav menuItems={menuItems} />
         {props.children}
       </ShellComponent>
-      <AiBuddy menuItems={menuItems} />
+      <SweepstouchBot menuItems={menuItems} />
     </>
   );
 });
