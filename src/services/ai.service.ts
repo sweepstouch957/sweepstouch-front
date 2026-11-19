@@ -59,6 +59,12 @@ export interface AIConfig {
   allowedRoles: string[];
 }
 
+export interface AITable {
+  title: string;
+  columns: string[];
+  rows: (string | number)[][];
+}
+
 /* ─── Chat (SSE Streaming) ─── */
 
 export async function sendChatMessage(
@@ -79,12 +85,19 @@ export async function sendChatMessage(
     signal?: AbortSignal;
   },
   onText: (text: string) => void,
-  onDone: (meta: { inputTokens: number; outputTokens: number; toolResults?: any[]; images?: any[] }) => void,
+  onDone: (meta: {
+    inputTokens: number;
+    outputTokens: number;
+    toolResults?: any[];
+    images?: any[];
+  }) => void,
   onError: (error: string) => void,
   onToolStart?: (data: { tool: string; input: Record<string, any> }) => void,
   onToolResult?: (data: { tool: string; result: Record<string, any> }) => void,
   onImage?: (data: { url: string; name: string }) => void,
   onConversationId?: (conversationId: string) => void,
+  /** Tabla que una herramienta manda directo a la pantalla (el modelo no la reescribe). */
+  onTable?: (table: AITable) => void
 ): Promise<void> {
   const { signal, ...bodyParams } = params;
   const token = getAuthToken();
@@ -126,9 +139,9 @@ export async function sendChatMessage(
 
     try {
       const data = JSON.parse(trimmedLine.slice(6));
-      const conversationId =
-        data.conversationId || data.conversation?._id || data.conversation?.id;
+      const conversationId = data.conversationId || data.conversation?._id || data.conversation?.id;
       if (conversationId) onConversationId?.(String(conversationId));
+      if (data.type === 'table') onTable?.(data);
 
       if (data.type === 'text') onText(data.text);
       else if (data.type === 'done') onDone(data);
@@ -281,11 +294,16 @@ export async function previewContext() {
 /* ─── Image Generation (SSE stream, same pattern as sendChatMessage) ─── */
 
 export async function generateImage(
-  params: { prompt: string; style?: string; provider?: 'openai' | 'claude' | 'gemini'; signal?: AbortSignal },
+  params: {
+    prompt: string;
+    style?: string;
+    provider?: 'openai' | 'claude' | 'gemini';
+    signal?: AbortSignal;
+  },
   onText: (text: string) => void,
   onImage: (data: { url: string; name: string }) => void,
   onDone: (meta: { images?: any[] }) => void,
-  onError: (error: string) => void,
+  onError: (error: string) => void
 ): Promise<void> {
   const { signal, ...bodyParams } = params;
   const token = getAuthToken();
@@ -380,7 +398,11 @@ export async function transcribeAudio(audioBlob: Blob): Promise<string> {
 /* ─── Voz: texto → audio con voz natural en español ─── */
 
 export async function speakText(text: string, signal?: AbortSignal): Promise<Blob> {
-  const { data } = await api.post('/ai/speak', { text }, { responseType: 'blob', signal, timeout: 20000 });
+  const { data } = await api.post(
+    '/ai/speak',
+    { text },
+    { responseType: 'blob', signal, timeout: 20000 }
+  );
   return data;
 }
 

@@ -149,7 +149,8 @@ export function useBotChat(pageContext: string) {
         undefined,
         (id) => {
           convIdRef.current = id;
-        }
+        },
+        (table) => patch((t) => ({ ...t, tables: [...(t.tables || []), table] }))
       );
 
       cancelAnimationFrame(frame);
