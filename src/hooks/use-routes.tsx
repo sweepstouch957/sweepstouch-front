@@ -107,6 +107,7 @@ const workItems = (t: (token: string) => string): MenuItem[] => [
   { title: t('Proyectos'), route: routes.admin.applications['projects-board'], icon: <ViewKanbanRounded />, roles: STAFF_ROLES },
   { title: t('Reuniones'), route: routes.admin.applications.meetings, icon: <GroupsRounded />, roles: STAFF_ROLES },
   { title: t('Calendario'), route: routes.admin.applications.calendar, icon: <CalendarMonthRounded />, roles: STAFF_ROLES },
+  { title: t('Calendario festivo'), route: routes.admin.applications['holiday-calendar'], icon: <EventRounded />, roles: STAFF_ROLES },
 ];
 
 /**

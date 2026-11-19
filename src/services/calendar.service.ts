@@ -1,5 +1,6 @@
 // src/services/calendar.service.ts — calendario de eventos y activaciones (task-service /calendar)
 import { api } from '@/libs/axios';
+import { readCalendarOrigin, writeCalendarOrigin, type CalendarScope } from './calendar-origin';
 
 /* ═══════════════ Types ═══════════════ */
 
@@ -44,6 +45,9 @@ export interface EventReport {
 }
 
 export interface CalendarEvent {
+  holidayCountryId?: string;
+  holidayImportKey?: string;
+  calendarScope?: CalendarScope;
   _id: string;
   source: EventSource;
   type: EventType;
@@ -95,6 +99,9 @@ export interface ChecklistTemplate {
 }
 
 export interface EventPayload {
+  holidayCountryId?: string;
+  holidayImportKey?: string;
+  calendarScope?: CalendarScope;
   title: string;
   type: EventType;
   date: string;
@@ -137,27 +144,38 @@ export const calendarService = {
   /** Feed unificado (eventos + tareas de tienda + visitas) entre dos fechas. */
   feed: async (from: string, to: string): Promise<CalendarEvent[]> => {
     const { data } = await api.get(`${BASE}/events`, { params: { from, to } });
-    return data.data;
+    return data.data.map(readCalendarOrigin);
   },
 
   upcoming: async (days = 14): Promise<CalendarEvent[]> => {
     const { data } = await api.get(`${BASE}/upcoming`, { params: { days } });
-    return data.data;
+    return data.data.map(readCalendarOrigin);
   },
 
   get: async (id: string): Promise<CalendarEvent> => {
     const { data } = await api.get(`${BASE}/events/${id}`);
-    return data.data;
+    return readCalendarOrigin(data.data);
   },
 
   create: async (payload: EventPayload): Promise<CalendarEvent> => {
-    const { data } = await api.post(`${BASE}/events`, payload);
-    return data.data;
+    const { data } = await api.post(`${BASE}/events`, writeCalendarOrigin(payload));
+    return readCalendarOrigin(data.data);
   },
 
   update: async (id: string, payload: Partial<EventPayload>): Promise<CalendarEvent> => {
-    const { data } = await api.patch(`${BASE}/events/${id}`, payload);
-    return data.data;
+    // Preserve origin when a description is edited from the general calendar.
+    let scoped = payload;
+    if (payload.description !== undefined && payload.calendarScope === undefined) {
+      const current = await calendarService.get(id);
+      scoped = {
+        holidayCountryId: current.holidayCountryId,
+        holidayImportKey: current.holidayImportKey,
+        ...payload,
+        calendarScope: current.calendarScope,
+      };
+    }
+    const { data } = await api.patch(`${BASE}/events/${id}`, writeCalendarOrigin(scoped));
+    return readCalendarOrigin(data.data);
   },
 
   remove: async (id: string): Promise<void> => {

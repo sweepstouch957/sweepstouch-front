@@ -125,6 +125,7 @@ export const routes = {
       'ai-assistant': '/admin/applications/ai-assistant',
       'ai-config': '/admin/applications/ai-assistant/config',
       calendar: '/admin/applications/calendar',
+      'holiday-calendar': '/admin/applications/holiday-calendar',
       'file-manager': '/admin/applications/file-manager',
       'jobs-platform': '/admin/applications/jobs-platform',
       mailbox: '/admin/applications/mailbox',
