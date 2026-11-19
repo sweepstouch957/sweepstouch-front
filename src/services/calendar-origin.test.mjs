@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  getHolidayCountryIds,
   HOLIDAY_CALENDAR_MARKER,
   readCalendarOrigin,
   writeCalendarOrigin,
@@ -66,4 +67,30 @@ test('country and original import identity survive edits and serialization', () 
   assert.equal(edited.holidayCountryId, 'br');
   assert.equal(edited.holidayImportKey, payload.holidayImportKey);
   assert.equal(edited.description, 'Nuevo texto');
+});
+
+test('multiple countries survive storage and changing the selection', () => {
+  const stored = writeCalendarOrigin({
+    calendarScope: 'holiday',
+    holidayCountryIds: ['hn', 'gt', 'sv'],
+    description: 'Celebración compartida',
+  });
+  assert.equal('holidayCountryIds' in stored, false);
+  const loaded = readCalendarOrigin(stored);
+  assert.deepEqual(getHolidayCountryIds(loaded), ['hn', 'gt', 'sv']);
+  assert.equal(loaded.description, 'Celebración compartida');
+  const edited = readCalendarOrigin(
+    writeCalendarOrigin({ ...loaded, holidayCountryIds: ['mx', 'co'] })
+  );
+  assert.deepEqual(getHolidayCountryIds(edited), ['mx', 'co']);
+});
+
+test('legacy imported countries are supported and explicit selections take priority', () => {
+  assert.deepEqual(getHolidayCountryIds({ holidayCountryId: 'br' }), ['br']);
+  assert.deepEqual(
+    getHolidayCountryIds({ holidayCountryId: 'br', holidayCountryIds: ['hn', 'hn', 'gt'] }),
+    ['hn', 'gt']
+  );
+  assert.deepEqual(getHolidayCountryIds({ holidayCountryId: 'br', holidayCountryIds: [] }), []);
+  assert.deepEqual(getHolidayCountryIds({}), []);
 });

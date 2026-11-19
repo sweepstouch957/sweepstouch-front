@@ -2,7 +2,19 @@
 // Keep the origin in a versioned envelope and remove it before displaying text.
 export const HOLIDAY_CALENDAR_MARKER = '<!-- sweepstouch:calendar=holiday:v1 -->';
 export type CalendarScope = 'general' | 'holiday';
-export type HolidayMetadata = { holidayCountryId?: string; holidayImportKey?: string };
+export type HolidayMetadata = {
+  holidayCountryId?: string;
+  holidayCountryIds?: string[];
+  holidayImportKey?: string;
+};
+
+export function getHolidayCountryIds(event: HolidayMetadata): string[] {
+  return event.holidayCountryIds !== undefined
+    ? [...new Set(event.holidayCountryIds.filter((id) => typeof id === 'string' && id.length > 0))]
+    : event.holidayCountryId
+      ? [event.holidayCountryId]
+      : [];
+}
 const META_PREFIX = '<!-- sweepstouch:holiday-meta:';
 
 export function readCalendarOrigin<T extends { description?: string }>(
@@ -23,6 +35,10 @@ export function readCalendarOrigin<T extends { description?: string }>(
         const parsed = JSON.parse(decodeURIComponent(text.slice(META_PREFIX.length, end)));
         if (typeof parsed.holidayCountryId === 'string')
           metadata.holidayCountryId = parsed.holidayCountryId;
+        if (Array.isArray(parsed.holidayCountryIds))
+          metadata.holidayCountryIds = getHolidayCountryIds({
+            holidayCountryIds: parsed.holidayCountryIds,
+          });
         if (typeof parsed.holidayImportKey === 'string')
           metadata.holidayImportKey = parsed.holidayImportKey;
         text = text.slice(end + 4).replace(/^\n/, '');
@@ -42,15 +58,16 @@ export function readCalendarOrigin<T extends { description?: string }>(
 export function writeCalendarOrigin<
   T extends { description?: string; calendarScope?: CalendarScope } & HolidayMetadata,
 >(payload: T): Omit<T, 'calendarScope' | keyof HolidayMetadata> {
-  const { calendarScope, holidayCountryId, holidayImportKey, ...body } = payload;
+  const { calendarScope, holidayCountryId, holidayCountryIds, holidayImportKey, ...body } = payload;
   if (calendarScope !== 'holiday') return body;
   const decoded = readCalendarOrigin(payload);
   const metadata = {
     holidayCountryId: holidayCountryId ?? decoded.holidayCountryId,
+    holidayCountryIds: holidayCountryIds ?? decoded.holidayCountryIds,
     holidayImportKey: holidayImportKey ?? decoded.holidayImportKey,
   };
   const extra =
-    metadata.holidayCountryId || metadata.holidayImportKey
+    metadata.holidayCountryId || metadata.holidayCountryIds?.length || metadata.holidayImportKey
       ? `${META_PREFIX}${encodeURIComponent(JSON.stringify(metadata))} -->\n`
       : '';
   return {

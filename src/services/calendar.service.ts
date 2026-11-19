@@ -46,6 +46,7 @@ export interface EventReport {
 
 export interface CalendarEvent {
   holidayCountryId?: string;
+  holidayCountryIds?: string[];
   holidayImportKey?: string;
   calendarScope?: CalendarScope;
   _id: string;
@@ -100,6 +101,7 @@ export interface ChecklistTemplate {
 
 export interface EventPayload {
   holidayCountryId?: string;
+  holidayCountryIds?: string[];
   holidayImportKey?: string;
   calendarScope?: CalendarScope;
   title: string;
@@ -169,6 +171,7 @@ export const calendarService = {
       const current = await calendarService.get(id);
       scoped = {
         holidayCountryId: current.holidayCountryId,
+        holidayCountryIds: current.holidayCountryIds,
         holidayImportKey: current.holidayImportKey,
         ...payload,
         calendarScope: current.calendarScope,

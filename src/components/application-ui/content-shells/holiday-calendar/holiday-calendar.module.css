@@ -243,6 +243,16 @@
   font-size: 13px;
   color: var(--muted);
 }
+.eventCountries,
+.eventCountries > span {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.eventCountries {
+  gap: 8px 16px;
+}
 .customEvent h3 {
   font-size: 19px;
   margin: 12px 0 8px;

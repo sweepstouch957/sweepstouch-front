@@ -1,5 +1,6 @@
 'use client';
 
+import { getHolidayCountryIds } from '@/services/calendar-origin';
 import { calendarService, type CalendarEvent } from '@/services/calendar.service';
 import { CalendarMonthRounded, PublicRounded, TouchAppOutlined } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
@@ -294,7 +295,7 @@ function Upcoming({
               type="button"
               className={classes(s.upc, urgencyClasses[urgency])}
               data-urgency={urgency}
-              key={`${h.country.id}-${h.key}-${h.name}`}
+              key={`${h.eventId}-${h.country.id}-${h.key}`}
               onClick={() => onDate(h.key)}
             >
               <span className={s.t}>
@@ -357,22 +358,25 @@ export default function HolidayCalendar() {
       event.source === 'event' && event.calendarScope === 'holiday' && event.status !== 'cancelado'
   );
   const savedHolidays: Holiday[] = events
-    .flatMap((event) => {
-      const country = COUNTRIES.find((item) => item.id === event.holidayCountryId);
-      return country
-        ? [
-            {
-              country,
-              key: dateKey(Number(event.date.slice(5, 7)), Number(event.date.slice(8, 10))),
-              name: event.title,
-              eventId: event._id,
-            },
-          ]
-        : [];
-    })
+    .flatMap((event) =>
+      getHolidayCountryIds(event).flatMap((countryId) => {
+        const country = COUNTRIES.find((item) => item.id === countryId);
+        return country
+          ? [
+              {
+                country,
+                key: dateKey(Number(event.date.slice(5, 7)), Number(event.date.slice(8, 10))),
+                name: event.title,
+                eventId: event._id,
+              },
+            ]
+          : [];
+      })
+    )
     .sort((a, b) => a.key - b.key);
   const filteredEvents = events.filter(
-    (event) => !filter || !event.holidayCountryId || event.holidayCountryId === filter
+    (event) =>
+      !filter || !getHolidayCountryIds(event).length || getHolidayCountryIds(event).includes(filter)
   );
   const selectedEvents = filteredEvents
     .filter(
@@ -516,8 +520,10 @@ export default function HolidayCalendar() {
                       .replace(/^./, (letter) => letter.toUpperCase())}
                   </div>
                   <p className={s.dayCount}>
-                    {selectedHolidays.length} festivos ·{' '}
-                    {selectedEvents.filter((event) => !event.holidayCountryId).length} otros eventos
+                    {selectedEvents.filter((event) => getHolidayCountryIds(event).length).length}{' '}
+                    festivos ·{' '}
+                    {selectedEvents.filter((event) => !getHolidayCountryIds(event).length).length}{' '}
+                    otros eventos
                   </p>
                 </div>
                 <button
@@ -548,14 +554,18 @@ export default function HolidayCalendar() {
                   >
                     <div className={s.eventMeta}>
                       <span>
-                        {event.holidayCountryId ? (
-                          <>
-                            <Flag
-                              id={event.holidayCountryId}
-                              size="sm"
-                            />{' '}
-                            {COUNTRIES.find((item) => item.id === event.holidayCountryId)?.n}
-                          </>
+                        {getHolidayCountryIds(event).length ? (
+                          <span className={s.eventCountries}>
+                            {getHolidayCountryIds(event).map((id) => (
+                              <span key={id}>
+                                <Flag
+                                  id={id}
+                                  size="sm"
+                                />
+                                {COUNTRIES.find((country) => country.id === id)?.n}
+                              </span>
+                            ))}
+                          </span>
                         ) : (
                           'Evento'
                         )}
@@ -632,6 +642,7 @@ export default function HolidayCalendar() {
         {addingEvent && (
           <EventDialog
             initialDate={isoDate(selected)}
+            initialCountryId={filter}
             onClose={() => setAddingEvent(false)}
             onSaved={(event) => {
               setAddingEvent(false);

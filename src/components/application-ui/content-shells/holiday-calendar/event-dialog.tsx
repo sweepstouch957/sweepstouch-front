@@ -1,5 +1,6 @@
 'use client';
 
+import { getHolidayCountryIds } from '@/services/calendar-origin';
 import {
   calendarService,
   type CalendarEvent,
@@ -7,7 +8,9 @@ import {
 } from '@/services/calendar.service';
 import {
   Alert,
+  Autocomplete,
   Button,
+  Checkbox,
   Dialog,
   DialogActions,
   DialogContent,
@@ -16,18 +19,21 @@ import {
   TextField,
 } from '@mui/material';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import Image from 'next/image';
 import { useState, type FormEvent } from 'react';
 import toast from 'react-hot-toast';
-import { YEAR } from './data';
+import { COUNTRIES, YEAR } from './data';
 
 export default function EventDialog({
   initialDate,
   editing,
+  initialCountryId,
   onClose,
   onSaved,
 }: {
   initialDate: string;
   editing?: CalendarEvent;
+  initialCountryId?: string | null;
   onClose: () => void;
   onSaved: (event: CalendarEvent) => void;
 }) {
@@ -36,6 +42,9 @@ export default function EventDialog({
   const [time, setTime] = useState(editing?.startTime ?? '');
   const [description, setDescription] = useState(editing?.description ?? '');
   const [endDate, setEndDate] = useState(editing?.endDate ?? '');
+  const [countryIds, setCountryIds] = useState<string[]>(() =>
+    editing ? getHolidayCountryIds(editing) : initialCountryId ? [initialCountryId] : []
+  );
   const queryClient = useQueryClient();
   const save = useMutation({
     mutationFn: (payload: EventPayload) =>
@@ -55,6 +64,7 @@ export default function EventDialog({
     if (
       !title.trim() ||
       !date ||
+      !countryIds.length ||
       save.isPending ||
       date < `${YEAR}-01-01` ||
       date > `${YEAR}-12-31` ||
@@ -72,7 +82,8 @@ export default function EventDialog({
       status: editing?.status ?? 'confirmado',
       notify: false,
       calendarScope: 'holiday',
-      holidayCountryId: editing?.holidayCountryId,
+      holidayCountryId: countryIds[0],
+      holidayCountryIds: countryIds,
       holidayImportKey: editing?.holidayImportKey,
     });
   };
@@ -128,6 +139,56 @@ export default function EventDialog({
                 disabled={save.isPending}
               />
             </Stack>
+            <Autocomplete
+              multiple
+              disableCloseOnSelect
+              options={COUNTRIES}
+              value={COUNTRIES.filter((country) => countryIds.includes(country.id))}
+              onChange={(_, countries) => setCountryIds(countries.map((country) => country.id))}
+              getOptionLabel={(country) => country.n}
+              isOptionEqualToValue={(option, value) => option.id === value.id}
+              disabled={save.isPending}
+              renderOption={(props, country, { selected }) => {
+                const { key, ...optionProps } = props as typeof props & { key?: string };
+                return (
+                  <li
+                    key={key ?? country.id}
+                    {...optionProps}
+                  >
+                    <Checkbox
+                      checked={selected}
+                      tabIndex={-1}
+                      sx={{ mr: 1 }}
+                    />
+                    <Image
+                      src={`/holiday-calendar/flags/${country.id}.svg`}
+                      alt=""
+                      width={24}
+                      height={16}
+                      unoptimized
+                      style={{ marginRight: 10 }}
+                    />
+                    {country.n}
+                  </li>
+                );
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Países donde se celebra"
+                  helperText="Selecciona uno o varios países"
+                  required={!countryIds.length}
+                />
+              )}
+            />
+            <Button
+              size="small"
+              onClick={() => setCountryIds(COUNTRIES.map((country) => country.id))}
+              disabled={save.isPending || countryIds.length === COUNTRIES.length}
+              sx={{ alignSelf: 'flex-start' }}
+            >
+              Seleccionar todos los países
+            </Button>
             {!!editing?.endDate && (
               <TextField
                 label="Fecha final"
@@ -165,7 +226,7 @@ export default function EventDialog({
           <Button
             type="submit"
             variant="contained"
-            disabled={save.isPending || !title.trim() || !date}
+            disabled={save.isPending || !title.trim() || !date || !countryIds.length}
           >
             {save.isPending ? 'Guardando…' : editing ? 'Guardar cambios' : 'Guardar evento'}
           </Button>
