@@ -380,7 +380,7 @@ export async function transcribeAudio(audioBlob: Blob): Promise<string> {
 /* ─── Voz: texto → audio con voz natural en español ─── */
 
 export async function speakText(text: string, signal?: AbortSignal): Promise<Blob> {
-  const { data } = await api.post('/ai/speak', { text }, { responseType: 'blob', signal });
+  const { data } = await api.post('/ai/speak', { text }, { responseType: 'blob', signal, timeout: 20000 });
   return data;
 }
 

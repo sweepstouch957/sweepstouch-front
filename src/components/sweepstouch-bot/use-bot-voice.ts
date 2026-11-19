@@ -2,16 +2,29 @@
 
 import { transcribeAudio } from '@/services/ai.service';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { openMic, recordUntilPause, say, stopSpeaking } from './audio';
-import { BYE, MIC_DENIED, type VoiceState } from './constants';
+import { openMic, recordUntilPause, say, stopSpeaking, waitForVoice, type Mic } from './audio';
+import { BYE, HOLD, MIC_DENIED, type VoiceState } from './constants';
+
+const SLOW_MS = 4500; // si la consulta tarda más, avisa que sigue trabajando
+
+/** Habla, y se calla en cuanto la persona le habla encima («pérate», otra pregunta…). */
+async function sayInterruptible(text: string, mic: Mic) {
+  const watch = new AbortController();
+  void waitForVoice(mic, watch.signal).then((heard) => heard && stopSpeaking());
+  try {
+    await say(text);
+  } finally {
+    watch.abort();
+  }
+}
 
 type Ask = (question: string, opts?: { voice?: boolean }) => Promise<string>;
 type Deps = { ask: Ask; stop: () => void; notify: (text: string) => void };
 
 /**
  * Conversación por voz, manos libres: escucha → detecta la pausa → transcribe →
- * consulta → responde en voz alta → vuelve a escuchar. Mientras habla no escucha
- * (no se oye a sí mismo). Tocar la esfera interrumpe y vuelve a escuchar.
+ * consulta → responde en voz alta → vuelve a escuchar. Si le hablas encima mientras
+ * responde, se calla y te escucha; tocar la esfera hace lo mismo.
  */
 export function useVoiceMode({ ask, stop, notify }: Deps) {
   const [voice, setVoice] = useState<VoiceState>('off');
@@ -54,16 +67,22 @@ export function useVoiceMode({ ask, stop, notify }: Deps) {
 
         setVoice('thinking');
         const heard = await transcribeAudio(audio).catch(() => '');
-        if (!live() || !heard.trim()) continue;
+        // Nada entendible, o sólo «pérate»: no se pregunta nada, se sigue escuchando.
+        if (!live() || !heard.trim() || HOLD.test(heard)) continue;
         if (BYE.test(heard)) {
           await say('Entendido. Aquí estaré.');
           break;
         }
 
-        const answer = await ask(heard, { voice: true });
+        // Consulta larga: avisa que sigue trabajando, para que no parezca colgado.
+        const slow = window.setTimeout(
+          () => void say('Un momento, lo estoy consultando.'),
+          SLOW_MS
+        );
+        const answer = await ask(heard, { voice: true }).finally(() => window.clearTimeout(slow));
         if (live() && answer) {
           setVoice('speaking');
-          await say(answer);
+          await sayInterruptible(answer, mic);
         }
       }
     } finally {
