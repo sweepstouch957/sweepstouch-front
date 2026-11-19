@@ -13,16 +13,20 @@ type Props = {
   onTap: () => void;
 };
 
-/** Modo voz: la esfera crece con tu voz y dice en qué está. Tocarla interrumpe. */
+/**
+ * Modo voz, en una sola franja: la esfera crece con tu voz y al lado dice en qué
+ * está. Compacto a propósito, para que la respuesta escrita tenga el espacio.
+ */
 export const VoiceOrb = memo(function VoiceOrb({ voice, status, orbRef, onTap }: Props) {
   const brand = useBrand();
   const idle = voice === 'listening';
 
   return (
     <Stack
+      direction="row"
       alignItems="center"
-      gap={1.25}
-      sx={{ flexShrink: 0, py: 2.5, borderBottom: '1px solid', borderColor: 'divider' }}
+      gap={2}
+      sx={{ flexShrink: 0, px: 2.5, py: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}
     >
       <Box
         component="button"
@@ -33,8 +37,9 @@ export const VoiceOrb = memo(function VoiceOrb({ voice, status, orbRef, onTap }:
         sx={{
           '--lvl': 0,
           position: 'relative',
-          width: 96,
-          height: 96,
+          width: 52,
+          height: 52,
+          flexShrink: 0,
           p: 0,
           border: 0,
           borderRadius: '50%',
@@ -44,7 +49,7 @@ export const VoiceOrb = memo(function VoiceOrb({ voice, status, orbRef, onTap }:
           cursor: idle ? 'default' : 'pointer',
           background: brand.gradient,
           // Un solo anillo plano que crece con la voz: sin resplandor.
-          boxShadow: `0 0 0 calc(4px + var(--lvl) * 18px) ${brand.glow(0.16)}`,
+          boxShadow: `0 0 0 calc(3px + var(--lvl) * 10px) ${brand.glow(0.18)}`,
           transition: 'box-shadow 90ms linear',
           animation: idle ? 'none' : 'botOrb 1.5s ease-in-out infinite',
           '@keyframes botOrb': { '0%, 100%': { opacity: 1 }, '50%': { opacity: 0.78 } },
@@ -52,7 +57,7 @@ export const VoiceOrb = memo(function VoiceOrb({ voice, status, orbRef, onTap }:
           '&::after': {
             content: '""',
             position: 'absolute',
-            inset: -8,
+            inset: -6,
             borderRadius: '50%',
             border: '2px solid transparent',
             borderTopColor: brand.pink,
@@ -60,23 +65,23 @@ export const VoiceOrb = memo(function VoiceOrb({ voice, status, orbRef, onTap }:
             animation: 'botSpin 0.9s linear infinite',
           },
           '@keyframes botSpin': { to: { transform: 'rotate(360deg)' } },
-          '&:focus-visible': { outline: `3px solid ${brand.pink}`, outlineOffset: 12 },
+          '&:focus-visible': { outline: `3px solid ${brand.pink}`, outlineOffset: 9 },
           [NO_MOTION]: { animation: 'none', transition: 'none', '&::after': { animation: 'none' } },
         }}
       >
-        <BrandMark size={40} />
+        <BrandMark size={24} />
       </Box>
-      <Typography
-        aria-live="polite"
-        sx={{ fontSize: 14, fontWeight: 800 }}
-      >
-        {(voice === 'thinking' && status) || VOICE_LABEL[voice]}
-      </Typography>
-      <Typography
-        sx={{ fontSize: 11.5, color: 'text.secondary', textAlign: 'center', px: 3, mt: -0.75 }}
-      >
-        Habla normal y haz una pausa al terminar. Di «adiós» para salir.
-      </Typography>
+      <Box minWidth={0}>
+        <Typography
+          aria-live="polite"
+          sx={{ fontSize: 14.5, fontWeight: 800, lineHeight: 1.3 }}
+        >
+          {(voice === 'thinking' && status) || VOICE_LABEL[voice]}
+        </Typography>
+        <Typography sx={{ fontSize: 12, color: 'text.secondary', lineHeight: 1.4 }}>
+          Haz una pausa al terminar. Di «pérate» para callarlo o «adiós» para salir.
+        </Typography>
+      </Box>
     </Stack>
   );
 });

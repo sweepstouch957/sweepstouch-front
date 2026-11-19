@@ -1,5 +1,6 @@
 /** Tipos, etiquetas y preferencias de Sweepstouch Bot. Sin React: se puede probar suelto. */
 import type { BaseAIModel } from '@/components/application-ui/content-shells/ai-assistant/models';
+import type { AITable } from '@/services/ai.service';
 
 export type Turn = {
   id: number;
@@ -10,6 +11,8 @@ export type Turn = {
   routeTitle?: string;
   /** Acciones ya ejecutadas (ej. tarea creada). */
   done?: string[];
+  /** Listas que las herramientas mandan ya armadas (ej. tiendas activas). */
+  tables?: AITable[];
 };
 
 export type ModelChoice = { provider: BaseAIModel; version: string };
@@ -22,7 +25,7 @@ export const VOICE_LABEL: Record<VoiceState, string> = {
   off: '',
   listening: 'Te escucho…',
   thinking: 'Consultando…',
-  speaking: 'Respondiendo… (toca para interrumpir)',
+  speaking: 'Respondiendo… háblale o tócalo para interrumpir',
 };
 
 /** Frases para salir del modo voz hablando. */
@@ -62,7 +65,9 @@ export const savePrefs = (prefs: BotPrefs) => {
 /* ── Qué está haciendo mientras consulta ── */
 
 const TOOL_LABELS: [RegExp, string][] = [
+  [/^stores_list$/, 'Trayendo las tiendas…'],
   [/^(db_read|store_audience)$/, 'Consultando la base de datos…'],
+  [/memory$/, 'Revisando lo que recuerdo…'],
   [/^create_task$/, 'Creando la tarea…'],
   [/^navigate$/, 'Buscando la pantalla…'],
   [/meeting/, 'Revisando reuniones…'],

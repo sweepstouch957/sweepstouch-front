@@ -8,6 +8,7 @@ import TaskAltRoundedIcon from '@mui/icons-material/TaskAltRounded';
 import { Box, Button, ButtonBase, Stack, useTheme } from '@mui/material';
 import { memo, useEffect, useRef, useState } from 'react';
 import { tint } from 'src/theme/semantic';
+import { BotTable } from './bot-table';
 import { BrandAvatar, NO_MOTION, useBrand } from './brand';
 import type { Turn } from './constants';
 
@@ -25,7 +26,7 @@ const MyBubble = memo(function MyBubble({ text }: { text: string }) {
         borderRadius: '18px 18px 6px 18px',
         background: brand.gradient,
         color: brand.onBrand,
-        fontSize: 13.5,
+        fontSize: 14.5,
         fontWeight: 500,
         lineHeight: 1.5,
         overflowWrap: 'anywhere',
@@ -76,11 +77,20 @@ const BotBubble = memo(function BotBubble({ turn, streaming, onNavigate }: BotBu
               bgcolor: brand.subtle,
               border: '1px solid',
               borderColor: 'divider',
+              // Letra cómoda de leer para cualquiera, también en las tablas del texto.
+              '& .MuiTypography-root, & li': { fontSize: '14.5px !important', lineHeight: 1.65 },
+              '& td, & th': { fontSize: '13px !important' },
             }}
           >
             <MarkdownContent content={turn.text} />
           </Box>
         )}
+        {turn.tables?.map((table) => (
+          <BotTable
+            key={table.title}
+            table={table}
+          />
+        ))}
         {turn.route && (
           <Button
             size="small"
@@ -208,7 +218,7 @@ export const BotMessages = memo(function BotMessages({ turns, busy, activity, on
             key={turn.id}
             text={turn.text}
           />
-        ) : turn.text || turn.route || turn.done?.length ? (
+        ) : turn.text || turn.route || turn.done?.length || turn.tables?.length ? (
           <BotBubble
             key={turn.id}
             turn={turn}

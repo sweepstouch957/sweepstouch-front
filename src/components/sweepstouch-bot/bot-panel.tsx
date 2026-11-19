@@ -80,10 +80,10 @@ export default function BotPanel({
           zIndex: theme.zIndex.speedDial,
           right: anchor.right,
           bottom: `calc(${anchor.bottom} + 72px)`,
-          width: { xs: 'calc(100vw - 24px)', sm: 420 },
+          width: { xs: 'calc(100vw - 24px)', sm: 460 },
           maxWidth: 'calc(100vw - 24px)',
           // Nunca más alto que la ventana: deja libre la barra superior del panel.
-          height: 'min(640px, calc(100dvh - 180px))',
+          height: 'min(720px, calc(100dvh - 150px))',
           minHeight: 360,
           display: 'flex',
           flexDirection: 'column',
