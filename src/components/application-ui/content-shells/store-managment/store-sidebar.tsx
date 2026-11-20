@@ -168,9 +168,13 @@ export const StoreSidebar: FC<StoreSidebarProps> = ({
 
   const visibleGroups = useMemo(() => {
     const puedeVerGente = userRole === 'admin' || userRole === 'promotor_manager';
+    // Campaign manager arma las campañas: necesita ver la base de clientes, no las cajeras.
+    const puedeVerClientes = puedeVerGente || userRole === 'campaign_manager';
     return STORE_GROUPS.map((g) => ({
       ...g,
-      items: g.items.filter((i) => (i.id !== 'customers' && i.id !== 'cajeras') || puedeVerGente),
+      items: g.items.filter((i) =>
+        i.id === 'customers' ? puedeVerClientes : i.id !== 'cajeras' || puedeVerGente,
+      ),
     })).filter((g) => g.items.length > 0);
   }, [userRole]);
 
