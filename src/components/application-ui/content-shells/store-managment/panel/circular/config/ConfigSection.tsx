@@ -40,6 +40,7 @@ export default function ConfigSection({
       />
       <CircularSourceCard
         storeId={storeId}
+        storeSlug={storeSlug}
         circularssUrl={circularssUrl}
         circularPriority={circularPriority}
       />

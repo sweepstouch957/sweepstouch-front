@@ -10,6 +10,7 @@ import {
   SectionHeader,
 } from '@/components/application-ui/content-shells/store-managment/panel-kit';
 import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
+import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import {
   Box,
   Button,
@@ -20,14 +21,17 @@ import {
   TextField,
 } from '@mui/material';
 import { Controller, useForm } from 'react-hook-form';
+import { linktreeUrl } from 'src/utils/sweepstouch-urls';
 import { useSaveCircularSource, type CircularSourceValues as Values } from './use-circular-source';
 
 export function CircularSourceCard({
   storeId,
+  storeSlug,
   circularssUrl = '',
   circularPriority = 'circularss',
 }: {
   storeId: string;
+  storeSlug?: string;
   circularssUrl?: string;
   circularPriority?: 'circularss' | 'panel';
 }) {
@@ -85,7 +89,19 @@ export function CircularSourceCard({
         <Stack
           direction="row"
           justifyContent="flex-end"
+          gap={1}
         >
+          {storeSlug && (
+            <Button
+              href={linktreeUrl(storeSlug)}
+              target="_blank"
+              rel="noopener noreferrer"
+              endIcon={<OpenInNewRoundedIcon />}
+              sx={{ borderRadius: 999, fontWeight: 700 }}
+            >
+              Ver en el linktree
+            </Button>
+          )}
           <Button
             type="submit"
             variant="contained"
