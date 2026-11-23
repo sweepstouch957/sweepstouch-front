@@ -165,6 +165,8 @@ const campaignsMenu = (t: (token: string) => string): MenuItem =>
     { title: t('Opt-in MMS'), route: routes.admin.management.campaings.optin, roles: ['admin', 'general_manager', 'campaign_manager'] },
     // Relleno de audiencia: repone lo depurado con clientes indirectos. ESCRIBE clientes → sólo admin.
     { title: t('Relleno audiencia'), route: routes.admin.management.campaings['audience-experiment'], roles: ['admin'] },
+    // Recaptura: agenda campañas a números de tiendas inactivas → sólo admin.
+    { title: t('Recaptura de números'), route: routes.admin.management.campaings.recapture, roles: ['admin'] },
     { title: t('Generador MMS'), route: routes.admin.management.campaings.mms, roles: ADMIN_ACCESS_ROLES },
     { title: t('Monitoreo RCS'), route: routes.admin.dashboards['campaign-analytics'], roles: ADMIN_ACCESS_ROLES },
     // Matriz RCS: el árbol de llamadas. Quién compró hoy, en qué tienda, en qué

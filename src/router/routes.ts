@@ -190,6 +190,8 @@ export const routes = {
         optin: '/admin/management/campaings/optin',
         // Relleno de audiencia: repone lo depurado del mes con clientes indirectos de tiendas fuente.
         'audience-experiment': '/admin/management/campaings/audience-experiment',
+        // Recaptura: números de tiendas inactivas → campaña invitando a la tienda activa más cercana.
+        recapture: '/admin/management/campaings/recapture',
         // Matriz RCS: el árbol de llamadas del día — órdenes de todas las
         // tiendas con los datos de contacto de cada cliente.
         'rcs-matrix': '/admin/management/rcs-matrix',
