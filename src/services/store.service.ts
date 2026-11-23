@@ -74,6 +74,8 @@ export interface Store {
   circularPriority?: 'circularss' | 'panel';
   /** Confirmación al registrarse en el sorteo/opt-in (default mms). */
   optinConfirmation?: 'mms' | 'sms' | 'none';
+  /** Pausa de campañas para los registrados en sus sorteos desde `since` (medición). */
+  campaignHold?: CampaignHold;
   cancelContractDate?: string | null;
   cancelContractReason?: string;
   status?: 'active' | 'inactive' | 'suspended' | 'cancelled';
@@ -157,6 +159,8 @@ export interface UpdateStoreBody {
   circularPriority?: 'circularss' | 'panel';
   /** Confirmación al registrarse en el sorteo/opt-in (default mms). */
   optinConfirmation?: 'mms' | 'sms' | 'none';
+  /** Pausa de campañas para los registrados en sus sorteos desde `since` (medición). */
+  campaignHold?: CampaignHold;
   cancelContractDate?: string | null;
   cancelContractReason?: string;
   status?: 'active' | 'inactive' | 'suspended' | 'cancelled';
@@ -415,6 +419,26 @@ export const updateStore = async (id: string, store: Store): Promise<Store> => {
   const res = await api.patch<Store>(`/store/${id}`, store);
   return res.data;
 };
+
+export interface CampaignHold {
+  active: boolean;
+  since: string | null;
+  /** Sorteos ya habilitados: sus registrados vuelven a recibir campañas. */
+  releasedSweepstakes: string[];
+}
+
+export interface CampaignHoldStatus {
+  hold: CampaignHold;
+  sweepstakes: Array<{ id: string; name: string; status: string | null; count: number; lastAt: string; released: boolean }>;
+  /** Números retenidos ahora mismo. */
+  held: number;
+}
+
+/** Cuántos números retiene la pausa, por sorteo. */
+export async function getCampaignHold(storeId: string): Promise<CampaignHoldStatus> {
+  const { data } = await api.get(`/sweepstakes/participants/campaign-hold/${storeId}`);
+  return data;
+}
 
 export async function updateStorePatch(id: string, body: UpdateStoreBody) {
   const hasAnniversary = Object.prototype.hasOwnProperty.call(body, 'aniversaryStore');
