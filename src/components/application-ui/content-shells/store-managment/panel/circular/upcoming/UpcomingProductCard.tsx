@@ -191,6 +191,17 @@ function UpcomingProductCard({
             />
           </Box>
         </Stack>
+        {/* El ahorro que va a ver el cliente (regular − oferta), tal como sale en su lista. */}
+        {!!pend?.savings && (
+          <Typography
+            color="success.main"
+            noWrap
+            sx={{ ...smallText, fontWeight: 700 }}
+          >
+            Ahorra {pend.savings}
+            {/^\d+\s*\//.test(pend.price || '') ? ' por unidad' : ''}
+          </Typography>
+        )}
         {changes && (
           <Typography
             color="text.secondary"
