@@ -8,7 +8,7 @@ import {
 } from '@/components/application-ui/content-shells/store-managment/panel-kit';
 import EventRoundedIcon from '@mui/icons-material/EventRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
-import { InputAdornment, Skeleton, Stack, TextField } from '@mui/material';
+import { InputAdornment, Skeleton, Stack, TextField, Tooltip } from '@mui/material';
 import { fmtDay, relDay } from './utils';
 
 type Props = {
@@ -45,7 +45,7 @@ export default function UpcomingSummary({
         hint={
           flyerOnly
             ? 'Sólo flyer: el circular semanal no se está cargando. Aquí salen únicamente los productos de los flyers.'
-            : 'Productos y banners ya cargados que el cliente todavía no ve. Revísalos antes de su fecha.'
+            : 'El cliente todavía NO ve esto. Sale solo en su fecha: no tienes que hacer nada. Si ves algo mal, toca “Corregir” en el producto.'
         }
         action={
           <Stack
@@ -80,7 +80,7 @@ export default function UpcomingSummary({
           sx={{ px: 2.25, py: 1.5 }}
         >
           {loading ? (
-            [130, 90, 140, 200].map((w) => (
+            [240, 150, 150].map((w) => (
               <Skeleton
                 key={w}
                 variant="rounded"
@@ -91,20 +91,31 @@ export default function UpcomingSummary({
             ))
           ) : (
             <>
-              <StatusPill label={`${total} esperando fecha`} />
-              <StatusPill
-                tone="success"
-                label={`${nNew} nuevos`}
-              />
-              <StatusPill
-                tone="warning"
-                label={`${total - nNew} cambian de precio`}
-              />
               {nextDay && (
                 <StatusPill
                   tone="info"
-                  label={`Próximo: ${fmtDay(nextDay)} (${relDay(nextDay)})`}
+                  label={`Lo primero sale ${relDay(nextDay)}: ${fmtDay(nextDay)}`}
                 />
+              )}
+              {nNew > 0 && (
+                <Tooltip title="No estaban en la lista: aparecen por primera vez ese día.">
+                  <span>
+                    <StatusPill
+                      tone="success"
+                      label={`${nNew} nuevo${nNew !== 1 ? 's' : ''}: no estaban en la lista`}
+                    />
+                  </span>
+                </Tooltip>
+              )}
+              {total - nNew > 0 && (
+                <Tooltip title="Ya están en la lista de hoy: ese día sólo les cambia el precio.">
+                  <span>
+                    <StatusPill
+                      tone="warning"
+                      label={`${total - nNew} ya están en la lista: sólo cambian de precio`}
+                    />
+                  </span>
+                </Tooltip>
               )}
             </>
           )}

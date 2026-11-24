@@ -92,7 +92,7 @@ export function useUpcomingCount(storeSlug: string, poll: boolean) {
     staleTime: FRESH,
     gcTime: 60_000,
     refetchInterval: poll ? 60_000 : false,
-    select: (d) => (d?.total ?? 0) + (d?.banners?.length ?? 0),
+    select: (d) => d?.total ?? 0,
   });
   return q.data ?? 0;
 }

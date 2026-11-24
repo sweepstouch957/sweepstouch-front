@@ -23,7 +23,6 @@ import { UpcomingGroupSkeleton } from '../skeletons';
 import AgentsDialog from './AgentsDialog';
 import ArtPreviewDialog from './ArtPreviewDialog';
 import ConfirmDialog from './ConfirmDialog';
-import ScheduledBanners from './ScheduledBanners';
 import UpcomingGroupCard from './UpcomingGroupCard';
 import UpcomingSummary from './UpcomingSummary';
 import { useUpcomingActions } from './use-upcoming-actions';
@@ -137,14 +136,7 @@ export default function UpcomingProductsSection({ storeSlug }: { storeSlug: stri
         </>
       )}
 
-      {!!banners.length && (
-        <ScheduledBanners
-          banners={banners}
-          onPreview={setPreview}
-        />
-      )}
-
-      {!loading && !groups.length && !banners.length && (
+      {!loading && !groups.length && (
         <PanelCard>
           <Box sx={{ pt: 3, textAlign: 'center' }}>
             <EventRoundedIcon
@@ -172,7 +164,6 @@ export default function UpcomingProductsSection({ storeSlug }: { storeSlug: stri
         <UpcomingGroupCard
           key={g.key}
           group={g}
-          banner={bannerByDay.get(g.day)}
           editingId={editingId}
           rephotoingId={rephotoingId}
           artBusy={openArt.isPending}
@@ -185,7 +176,6 @@ export default function UpcomingProductsSection({ storeSlug }: { storeSlug: stri
           onPublishGroup={handlePublishGroup}
           onOpenArt={handleOpenArt}
           onOpenAgents={setAgentsFor}
-          onPreview={setPreview}
         />
       ))}
 

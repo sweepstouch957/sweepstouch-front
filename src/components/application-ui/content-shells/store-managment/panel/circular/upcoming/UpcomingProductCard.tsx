@@ -4,16 +4,14 @@
 import { StatusPill } from '@/components/application-ui/content-shells/store-managment/panel-kit';
 import type { StoreProduct } from '@/services/circular';
 import { cloudinaryThumb } from '@/utils/cloudinary';
-import CameraswitchOutlinedIcon from '@mui/icons-material/CameraswitchOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
-import RocketLaunchOutlinedIcon from '@mui/icons-material/RocketLaunchOutlined';
-import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
-import { Box, IconButton, Stack, Tooltip, Typography } from '@mui/material';
+import { Box, Button, Stack, Typography } from '@mui/material';
 import Image from 'next/image';
-import { memo, type ReactNode } from 'react';
+import { memo } from 'react';
 import { BlurField } from '../catalog/product-cell';
 import { fineText } from '../domain/catalog';
+import { MoreMenu } from '../panelUi';
 
 type Props = {
   product: StoreProduct;
@@ -29,34 +27,6 @@ type Props = {
   onPublish: (p: StoreProduct) => void;
   onCancel: (p: StoreProduct) => void;
 };
-
-function CardAction({
-  title,
-  icon,
-  onClick,
-  disabled = false,
-}: {
-  title: string;
-  icon: ReactNode;
-  onClick: () => void;
-  disabled?: boolean;
-}) {
-  return (
-    <Tooltip title={title}>
-      <span>
-        <IconButton
-          size="small"
-          aria-label={title}
-          onClick={onClick}
-          disabled={disabled}
-          sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
-        >
-          {icon}
-        </IconButton>
-      </span>
-    </Tooltip>
-  );
-}
 
 const smallText = { fontSize: 12.5, lineHeight: 1.4 } as const;
 
@@ -152,7 +122,7 @@ function UpcomingProductCard({
         <Box sx={{ position: 'absolute', top: 8, right: 8 }}>
           <StatusPill
             tone={pend?.isNew ? 'success' : 'warning'}
-            label={pend?.isNew ? 'Nuevo' : 'Cambia precio'}
+            label={pend?.isNew ? 'Nuevo' : 'Cambia de precio'}
           />
         </Box>
       </Box>
@@ -227,7 +197,7 @@ function UpcomingProductCard({
             noWrap
             sx={smallText}
           >
-            Hoy {p.price} → {pend?.price}
+            Hoy cuesta {p.price} → va a costar {pend?.price}
           </Typography>
         )}
         {fine && (
@@ -240,37 +210,44 @@ function UpcomingProductCard({
             {fine}
           </Typography>
         )}
+        {/* Dos botones con palabras; lo que casi nunca se usa va en "Más". */}
         <Stack
           direction="row"
-          justifyContent="space-between"
-          sx={{ mt: 'auto', pt: 0.75, mx: -0.5 }}
+          gap={0.75}
+          flexWrap="wrap"
+          sx={{ mt: 'auto', pt: 1 }}
         >
-          <Stack direction="row">
-            <CardAction
-              title="Editar todo: nombre, marca, precio, fecha, letra chica o foto"
-              icon={<EditOutlinedIcon fontSize="small" />}
-              onClick={edit}
-              disabled={busy}
-            />
-            <CardAction
-              title="No se parece: Gauche la busca de nuevo en su página del arte (≈ 1 min)"
-              icon={<CameraswitchOutlinedIcon fontSize="small" />}
-              onClick={() => onRephoto(p)}
-              disabled={rephotoing}
-            />
-          </Stack>
-          <Stack direction="row">
-            <CardAction
-              title="Publicar ya"
-              icon={<RocketLaunchOutlinedIcon fontSize="small" />}
-              onClick={() => onPublish(p)}
-            />
-            <CardAction
-              title="Que no salga"
-              icon={<VisibilityOffOutlinedIcon fontSize="small" />}
-              onClick={() => onCancel(p)}
-            />
-          </Stack>
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<EditOutlinedIcon />}
+            onClick={edit}
+            disabled={busy}
+          >
+            Corregir
+          </Button>
+          <MoreMenu
+            label="Más"
+            items={[
+              {
+                label: 'La foto no es: buscar otra',
+                hint: 'Un robot la busca de nuevo en el flyer (tarda como 1 minuto).',
+                onClick: () => onRephoto(p),
+                disabled: rephotoing,
+              },
+              {
+                label: 'Sacarlo hoy mismo',
+                hint: 'No espera la fecha: el cliente lo ve desde este momento.',
+                onClick: () => onPublish(p),
+              },
+              {
+                label: 'No sacar este producto',
+                hint: 'No va a aparecer en la lista del cliente.',
+                onClick: () => onCancel(p),
+                danger: true,
+              },
+            ]}
+          />
         </Stack>
       </Box>
     </Box>

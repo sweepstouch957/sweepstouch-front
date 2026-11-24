@@ -6,22 +6,17 @@ import {
   panelDivider,
 } from '@/components/application-ui/content-shells/store-managment/panel-kit';
 import type { StoreProduct, UpcomingGroup } from '@/services/circular';
-import { cloudinaryThumb } from '@/utils/cloudinary';
 import CampaignRoundedIcon from '@mui/icons-material/CampaignRounded';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
-import RocketLaunchOutlinedIcon from '@mui/icons-material/RocketLaunchOutlined';
-import { alpha, Box, Button, Chip, Stack, Tooltip, Typography } from '@mui/material';
-import Image from 'next/image';
+import TaskAltRoundedIcon from '@mui/icons-material/TaskAltRounded';
+import { alpha, Box, Button, Chip, Stack, Typography } from '@mui/material';
 import { memo, useCallback, useState } from 'react';
 import { MoreMenu } from '../panelUi';
-import { ApproveFlyerButton } from './ApproveFlyerButton';
 import UpcomingProductCard from './UpcomingProductCard';
-import { fmtDay, fmtMonth, GROUP_PREVIEW, originLabel, relDay, type UpcomingBanner } from './utils';
+import { fmtDay, fmtMonth, GROUP_PREVIEW, originLabel, relDay } from './utils';
 
 type Props = {
   group: UpcomingGroup;
-  /** Banner que sale el mismo día, si hay. */
-  banner?: UpcomingBanner;
   /** Producto cuyo editor se está abriendo / cuya foto rehace Gauche. */
   editingId?: string;
   rephotoingId?: string;
@@ -38,7 +33,6 @@ type Props = {
   onPublishGroup: (group: UpcomingGroup) => void;
   onOpenArt: (group: UpcomingGroup) => void;
   onOpenAgents: (group: UpcomingGroup) => void;
-  onPreview: (url: string) => void;
 };
 
 function DateBadge({ day }: { day: string }) {
@@ -73,7 +67,6 @@ function DateBadge({ day }: { day: string }) {
 
 function UpcomingGroupCard({
   group: g,
-  banner,
   editingId,
   rephotoingId,
   artBusy,
@@ -86,7 +79,6 @@ function UpcomingGroupCard({
   onPublishGroup,
   onOpenArt,
   onOpenAgents,
-  onPreview,
 }: Props) {
   // Un flyer trae 100+ productos por día: se pintan los primeros y el resto a pedido.
   const [expanded, setExpanded] = useState(false);
@@ -118,7 +110,7 @@ function UpcomingGroupCard({
               fontWeight={800}
               sx={{ '&::first-letter': { textTransform: 'uppercase' } }}
             >
-              {fmtDay(g.day)} · {relDay(g.day)}
+              Sale {relDay(g.day)} · {fmtDay(g.day)}
             </Typography>
             <Stack
               direction="row"
@@ -150,7 +142,6 @@ function UpcomingGroupCard({
                 color="text.secondary"
               >
                 {n} producto{n !== 1 ? 's' : ''}
-                {banner ? ' + banner' : ''}
               </Typography>
             </Stack>
           </Box>
@@ -162,66 +153,39 @@ function UpcomingGroupCard({
           flexWrap="wrap"
           alignItems="center"
         >
-          {banner && (
-            <Tooltip title="Banner de ese día">
-              <Box
-                component="button"
-                type="button"
-                onClick={() => onPreview(banner.imageUrl)}
-                aria-label="Ver banner de ese día"
-                sx={{
-                  p: 0,
-                  width: 120,
-                  aspectRatio: '3 / 1',
-                  borderRadius: 1.5,
-                  overflow: 'hidden',
-                  cursor: 'zoom-in',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  bgcolor: 'background.default',
-                  display: 'block',
-                }}
-              >
-                {/* Cloudinary ya entrega la miniatura: sin re-optimizar en Next. */}
-                <Image
-                  src={cloudinaryThumb(banner.imageUrl, 360, 120, 'fill')}
-                  alt=""
-                  width={360}
-                  height={120}
-                  unoptimized
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                />
-              </Box>
-            </Tooltip>
-          )}
-          {g.circular?.hasFile && (
-            <MoreMenu
-              items={[
-                {
-                  label: 'Ver arte',
-                  hint: 'El arte o circular del que salieron estos productos.',
-                  onClick: () => onOpenArt(g),
-                  disabled: artBusy,
-                },
-                {
-                  label: 'Revisar con los agentes',
-                  hint: 'Vanessa coteja precios y nombres contra el arte; Gauche rehace las fotos que no se parecen. El avance se ve en Agentes IA.',
-                  onClick: () => onOpenAgents(g),
-                  disabled: agentsBusy,
-                },
-              ]}
-            />
-          )}
-          {/* Validar por adelantado: aprobado = sale solo en su fecha */}
-          <ApproveFlyerButton group={g} />
-          <Button
-            size="small"
+          {/* Sale solo (auto-publicar): no hay nada que aprobar. Lo demás, en el menú. */}
+          <Chip
+            color="success"
             variant="outlined"
-            startIcon={<RocketLaunchOutlinedIcon />}
-            onClick={() => onPublishGroup(g)}
-          >
-            Publicar ahora
-          </Button>
+            icon={<TaskAltRoundedIcon />}
+            label="Sale solo ese día, no hagas nada"
+            sx={{ fontWeight: 700 }}
+          />
+          <MoreMenu
+            items={[
+              ...(g.circular?.hasFile
+                ? [
+                    {
+                      label: 'Ver el flyer',
+                      hint: 'La imagen de donde salieron estos productos, para comparar.',
+                      onClick: () => onOpenArt(g),
+                      disabled: artBusy,
+                    },
+                    {
+                      label: 'Que los robots lo revisen otra vez',
+                      hint: 'Comparan precios, nombres y fotos contra el flyer y corrigen lo que no coincide.',
+                      onClick: () => onOpenAgents(g),
+                      disabled: agentsBusy,
+                    },
+                  ]
+                : []),
+              {
+                label: 'Sacarlo hoy mismo',
+                hint: 'No espera la fecha: el cliente ve estos productos desde este momento.',
+                onClick: () => onPublishGroup(g),
+              },
+            ]}
+          />
         </Stack>
       </Stack>
 
