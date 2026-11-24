@@ -194,7 +194,7 @@ function UpcomingProductCard({
         {/* El ahorro que va a ver el cliente (regular − oferta), tal como sale en su lista. */}
         {!!pend?.savings && (
           <Typography
-            color="success.main"
+            color="text.secondary"
             noWrap
             sx={{ ...smallText, fontWeight: 700 }}
           >
