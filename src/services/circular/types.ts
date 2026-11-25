@@ -251,6 +251,8 @@ export interface StoreProduct {
   effectiveCircularTitle?: string;
   /** Precio (y si es alta, el producto entero) esperando su fecha. Lo vuelca el cron. */
   pending?: StorePendingPrice | null;
+  /** Próximas ofertas: nombre/marca/foto mostrados son los del flyer que viene (no los de hoy). */
+  identityPending?: boolean;
 }
 
 export interface StorePendingPrice {

@@ -131,7 +131,11 @@ export const catalogApi = {
         | 'counterOnly'
         | 'department'
       >
-    > & { editedBy?: string }
+    > & {
+      editedBy?: string;
+      /** Corrección hecha en Próximas ofertas: va a lo que VIENE, no a la ficha de hoy. */
+      forPending?: boolean;
+    }
   ): Promise<{ ok: boolean; item: StoreProduct }> {
     const res = await api.patch(`/circulars/store-product/${id}`, patch);
     return res.data;

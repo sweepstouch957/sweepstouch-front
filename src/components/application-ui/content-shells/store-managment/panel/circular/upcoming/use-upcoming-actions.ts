@@ -115,7 +115,9 @@ export function useUpcomingActions(storeSlug: string) {
       {
         const { price, originalPrice, ...rest } = body;
         const jobs: Promise<unknown>[] = [];
-        if (Object.keys(rest).length) jobs.push(circularService.updateStoreProduct(id, rest));
+        // forPending: si la ficha ya existe, se corrige lo que VIENE y no el producto de hoy.
+        if (Object.keys(rest).length)
+          jobs.push(circularService.updateStoreProduct(id, { ...rest, forPending: true }));
         if (price !== undefined || originalPrice !== undefined) {
           jobs.push(
             circularService.updatePending(id, {

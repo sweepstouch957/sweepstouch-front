@@ -82,22 +82,22 @@ export function PriceCell({
           }}
           size="small"
           variant="standard"
-          label={pend ? `Sale el ${fmtDate(pend.from)}` : undefined}
-          color={pend ? 'warning' : undefined}
-          focused={pend ? true : undefined}
           defaultValue={(pend ? pend[field] : today) ?? ''}
           fullWidth
           inputProps={{ 'aria-label': `${label} de ${p.name}` }}
           onBlur={(e) => save(e.target.value.trim())}
         />
       </Tooltip>
-      {pend && (
+      {/* Sólo si de verdad cambia: antes cada celda llevaba un marco rosado y un rótulo
+          cortado ("Sale el 24 nov 20…") aunque el precio fuera el mismo de hoy. */}
+      {pend && String(pend[field] ?? '').trim() !== String(today ?? '').trim() && (
         <Typography
           variant="body2"
           color="text.secondary"
+          noWrap
           sx={{ display: 'block', fontSize: 12, lineHeight: 1.2, mt: 0.25 }}
         >
-          Hoy: {today?.trim() || '—'}
+          Hoy {today?.trim() || '—'} · cambia el {fmtDate(pend.from)}
         </Typography>
       )}
       {estimate && (

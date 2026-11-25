@@ -51,7 +51,12 @@ export function useSaveProduct(storeSlug: string) {
           packUnit: pUnit,
           ...rest
         } = body;
-        await circularService.updateStoreProduct(product._id, rest as any);
+        // Abierto desde Próximas ofertas sobre una ficha que ya existe: nombre y foto van al
+        // flyer que viene, no al producto de hoy.
+        await circularService.updateStoreProduct(product._id, {
+          ...rest,
+          ...(product.identityPending ? { forPending: true } : {}),
+        } as any);
         const day = values.pendingDay;
         const movedDay = day && day !== toDayInput(pending.from);
         await circularService.updatePending(product._id, {
