@@ -386,3 +386,20 @@ export type DetailsJob = {
   circularTitle: string;
   error: string;
 };
+
+/** Precio regular de un producto en un supermercado de la zona. */
+export type RegularPriceQuote = {
+  price: number;
+  unit?: string;
+  store: string;
+  note?: string;
+  /** Precio habitual de la cadena en la región, no publicado para ese zip. */
+  estimated?: boolean;
+};
+
+export type RegularPrices = {
+  zip: string;
+  quotes: RegularPriceQuote[];
+  fetchedAt?: string;
+  cached: boolean;
+};

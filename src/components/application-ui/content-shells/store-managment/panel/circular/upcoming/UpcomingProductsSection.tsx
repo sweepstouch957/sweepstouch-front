@@ -20,13 +20,20 @@ import { useCallback, useDeferredValue, useMemo, useState } from 'react';
 import { useUpcoming } from '../hooks';
 import { ProductEditorDialog } from '../ProductImageTools';
 import { UpcomingGroupSkeleton } from '../skeletons';
+import AddProductDialog from './AddProductDialog';
 import AgentsDialog from './AgentsDialog';
 import ArtPreviewDialog from './ArtPreviewDialog';
 import ConfirmDialog from './ConfirmDialog';
 import UpcomingGroupCard from './UpcomingGroupCard';
 import UpcomingSummary from './UpcomingSummary';
 import { useUpcomingActions } from './use-upcoming-actions';
-import type { AgentsOptions, Confirm, EditorTarget, UpcomingBanner } from './utils';
+import {
+  fmtDay,
+  type AgentsOptions,
+  type Confirm,
+  type EditorTarget,
+  type UpcomingBanner,
+} from './utils';
 
 // Constantes estables: un `?? []` nuevo por render invalidaba el useMemo de abajo.
 const EMPTY_GROUPS: UpcomingGroup[] = [];
@@ -38,9 +45,10 @@ export default function UpcomingProductsSection({ storeSlug }: { storeSlug: stri
   const [editor, setEditor] = useState<EditorTarget | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [agentsFor, setAgentsFor] = useState<UpcomingGroup | null>(null);
+  const [addFor, setAddFor] = useState<UpcomingGroup | null>(null);
 
   const upcoming = useUpcoming(storeSlug);
-  const { refresh, openEditor, openArt, agents, rephoto, patch, act } =
+  const { refresh, openEditor, openArt, agents, rephoto, patch, act, add } =
     useUpcomingActions(storeSlug);
   const { mutate: patchMutate } = patch;
   const handlePatch = useCallback(
@@ -176,6 +184,7 @@ export default function UpcomingProductsSection({ storeSlug }: { storeSlug: stri
           onPublishGroup={handlePublishGroup}
           onOpenArt={handleOpenArt}
           onOpenAgents={setAgentsFor}
+          onAdd={setAddFor}
         />
       ))}
 
@@ -195,6 +204,18 @@ export default function UpcomingProductsSection({ storeSlug }: { storeSlug: stri
         url={preview}
         onClose={() => setPreview(null)}
       />
+
+      {/* Agregar a mano lo que la lectura no trajo. */}
+      {addFor && (
+        <AddProductDialog
+          dayLabel={fmtDay(addFor.day)}
+          pending={add.isPending}
+          onClose={() => setAddFor(null)}
+          onSubmit={(values) =>
+            add.mutate({ group: addFor, values }, { onSuccess: () => setAddFor(null) })
+          }
+        />
+      )}
 
       {/* Poner a los agentes a trabajar sobre un flyer que todavía no salió. */}
       {agentsFor && (

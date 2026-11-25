@@ -9,7 +9,12 @@ import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { errMsg } from '../domain/errors';
 import { useRefreshStoreData } from '../hooks';
-import { type AgentsOptions, type Confirm, type EditorTarget } from './utils';
+import {
+  type AgentsOptions,
+  type Confirm,
+  type EditorTarget,
+  type NewUpcomingProduct,
+} from './utils';
 
 // Imagen para recortar: la del arte/circular del que salió ESTE producto (no el vigente).
 // Si es PDF se pide la portada renderizada (queda cacheada en el servidor).
@@ -128,6 +133,21 @@ export function useUpcomingActions(storeSlug: string) {
     onError: (e) => toast.error(errMsg(e, 'No se pudo guardar')),
   });
 
+  // Agregar a mano lo que la lectura del flyer no trajo: sale con el resto del grupo.
+  const add = useMutation({
+    mutationFn: ({ group, values }: { group: UpcomingGroup; values: NewUpcomingProduct }) =>
+      circularService.addUpcomingProduct(storeSlug, {
+        from: group.from,
+        ...(group.circular ? { circularId: group.circular._id } : {}),
+        ...values,
+      }),
+    onSuccess: () => {
+      toast.success('Producto agregado: sale con los demás en su fecha');
+      refresh();
+    },
+    onError: (e) => toast.error(errMsg(e, 'No se pudo agregar el producto')),
+  });
+
   /** Publicar ya (grupo o producto) o que no salga. */
   const act = useMutation({
     mutationFn: async (c: Confirm) => {
@@ -153,5 +173,5 @@ export function useUpcomingActions(storeSlug: string) {
     onError: (e) => toast.error(errMsg(e, 'No se pudo completar')),
   });
 
-  return { refresh, openEditor, openArt, agents, rephoto, patch, act };
+  return { refresh, openEditor, openArt, agents, rephoto, patch, act, add };
 }

@@ -8,6 +8,7 @@ import {
 import type { StoreProduct, UpcomingGroup } from '@/services/circular';
 import CampaignRoundedIcon from '@mui/icons-material/CampaignRounded';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import TaskAltRoundedIcon from '@mui/icons-material/TaskAltRounded';
 import { alpha, Box, Button, Chip, Stack, Typography } from '@mui/material';
 import { memo, useCallback, useState } from 'react';
@@ -33,6 +34,7 @@ type Props = {
   onPublishGroup: (group: UpcomingGroup) => void;
   onOpenArt: (group: UpcomingGroup) => void;
   onOpenAgents: (group: UpcomingGroup) => void;
+  onAdd: (group: UpcomingGroup) => void;
 };
 
 function DateBadge({ day }: { day: string }) {
@@ -79,6 +81,7 @@ function UpcomingGroupCard({
   onPublishGroup,
   onOpenArt,
   onOpenAgents,
+  onAdd,
 }: Props) {
   // Un flyer trae 100+ productos por día: se pintan los primeros y el resto a pedido.
   const [expanded, setExpanded] = useState(false);
@@ -161,6 +164,14 @@ function UpcomingGroupCard({
             label="Sale solo ese día, no hagas nada"
             sx={{ fontWeight: 700 }}
           />
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<AddRoundedIcon />}
+            onClick={() => onAdd(g)}
+          >
+            Agregar producto
+          </Button>
           <MoreMenu
             items={[
               ...(g.circular?.hasFile

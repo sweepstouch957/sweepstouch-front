@@ -12,6 +12,7 @@ import { memo } from 'react';
 import { BlurField } from '../catalog/product-cell';
 import { fineText } from '../domain/catalog';
 import { MoreMenu } from '../panelUi';
+import RegularPricePicker from './RegularPricePicker';
 
 type Props = {
   product: StoreProduct;
@@ -191,6 +192,11 @@ function UpcomingProductCard({
             />
           </Box>
         </Stack>
+        {/* Regular investigado: lo que cobran otros supermercados del zip de la tienda. */}
+        <RegularPricePicker
+          product={p}
+          onPick={(originalPrice) => onPatch(p._id, { originalPrice })}
+        />
         {/* El ahorro que va a ver el cliente (regular − oferta), tal como sale en su lista. */}
         {!!pend?.savings && (
           <Typography

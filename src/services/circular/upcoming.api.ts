@@ -2,6 +2,7 @@
 import { api } from '@/libs/axios';
 import type {
   CampaignImportJob,
+  RegularPrices,
   StoreBanner,
   StorePendingPrice,
   StoreProduct,
@@ -54,6 +55,20 @@ export const upcomingApi = {
     return res.data.item;
   },
 
+  /** Lo que cobran otros supermercados de la zona (zip de la tienda) por este producto, de
+   *  menor a mayor. La primera vez investiga con IA (≈30 s); después sale de lo guardado. */
+  async getRegularPrices(
+    storeSlug: string,
+    product: { name: string; brand?: string; size?: string; unit?: string },
+    refresh = false
+  ): Promise<RegularPrices> {
+    const res = await api.get(`/circulars/store/${storeSlug}/regular-prices`, {
+      params: { ...product, ...(refresh ? { refresh: 1 } : {}) },
+      timeout: 120_000,
+    });
+    return res.data;
+  },
+
   /** Aprobar por adelantado (Revisar y publicar): sale solo en su fecha. */
   async approveReview(circularId: string, by?: string): Promise<{ ok: boolean }> {
     const res = await api.post(`/circulars/circular/${circularId}/approve-review`, by ? { by } : {});
@@ -80,6 +95,23 @@ export const upcomingApi = {
   ): Promise<{ applied: number; bannersMoved?: number }> {
     const res = await api.post(`/circulars/store/${storeSlug}/upcoming/apply`, scope);
     return res.data;
+  },
+
+  /** Agrega a mano un producto a un grupo que espera fecha: sale con el resto ese día. */
+  async addUpcomingProduct(
+    storeSlug: string,
+    body: {
+      from: string;
+      circularId?: string;
+      name: string;
+      brand?: string;
+      size?: string;
+      price: string;
+      originalPrice?: string;
+    }
+  ): Promise<StoreProduct> {
+    const res = await api.post(`/circulars/store/${storeSlug}/upcoming/product`, body);
+    return res.data.item;
   },
 
   /** Que no salga: un alta se borra, un cambio de precio se descarta (queda el de hoy). */

@@ -19,6 +19,15 @@ export type Confirm =
  *  arte de campaña → "Recortar flyer"; circular semanal → "Recortar circular". */
 export type EditorTarget = { product: StoreProduct; flyerUrl: string; fromCampaign: boolean };
 
+/** Lo que se escribe al agregar un producto a mano a un grupo. */
+export type NewUpcomingProduct = {
+  name: string;
+  brand: string;
+  size: string;
+  price: string;
+  originalPrice: string;
+};
+
 export type AgentsOptions = {
   /** Yuno: segunda pasada por secciones. */
   missing: boolean;
